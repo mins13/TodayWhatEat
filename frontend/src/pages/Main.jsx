@@ -17,9 +17,9 @@ function Main() {
 
                 {/* 소개 카드 */}
                 <section className="info-section">
-                    <InfoCard text={"Easy food\nmanagement"} imgSrc="/sample2.jpg" />
-                    <InfoCard text={"Recommended\ncooking service"} imgSrc="/sample3.jpg" reverse />
-                    <InfoCard text={"Sharing various\ninformation"} imgSrc="/sample4.jpg" />
+                    <InfoCard text={"Easy food\nmanagement"} imgSrc="/sample4.jpg" />
+                    <InfoCard text={"Recommended\ncooking service"} imgSrc="/sample5.jpg" reverse />
+                    <InfoCard text={"Sharing various\ninformation"} imgSrc="/sample6.jpg" />
                 </section>
 
                 <Footer />
