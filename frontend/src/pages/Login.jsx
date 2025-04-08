@@ -11,7 +11,8 @@ function Login() {
         navigate("/signup");
     };
     return (
-        <div>
+        <div className="main-container">
+            <div className="content-wrapper">
             <Header />
             <div className="login-container">
 
@@ -25,6 +26,7 @@ function Login() {
                 </div>
             </div>
             <Footer />
+        </div>
         </div>
     );
 }

@@ -5,7 +5,8 @@ import Footer from '../components/Footer';
 
 function Signup() {
     return (
-        <div>
+        <div className="main-container">
+            <div className="content-wrapper">
             <Header />
             <div className="signup-container">
                 <div className="signup-box">
@@ -19,6 +20,7 @@ function Signup() {
                 </div>
             </div>
             <Footer />
+        </div>
         </div>
     );
 }
