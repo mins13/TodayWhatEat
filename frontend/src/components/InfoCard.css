@@ -1,0 +1,32 @@
+.info-card {
+    width: 100%;
+    max-width: 1000px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: #fef9e7;
+    padding: 1.5rem;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    gap: 1.5rem;
+}
+
+.info-card.reverse {
+    flex-direction: row-reverse;
+}
+
+.info-card img {
+    width: 40%;
+    max-width: 300px;
+    border-radius: 8px;
+    object-fit: cover;
+}
+
+.info-card .text {
+    flex: 1;
+    font-size: 1.3rem;
+    font-weight: 600;
+    text-align: center;
+    white-space: pre-line;
+}
