@@ -15,12 +15,18 @@
 
 .main-carousel {
     width: 100%;
-    margin-bottom: 2rem;
+    height: auto;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 3rem;
+
 }
 
 .main-carousel img {
     width: 100%;
     height: auto;
+    max-height: 600px;
     border-radius: 10px;
     object-fit: cover;
     display: block;

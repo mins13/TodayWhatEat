@@ -5,9 +5,11 @@ import { Link } from 'react-router-dom';
 function Header() {
     return (
         <header className="header-container">
-            <h1 className="site-title">오늘 뭐 먹지?</h1>
+            <Link to="/" className="logo">오늘 뭐 먹지?</Link>
+
 
             <div className="nav-wrapper">
+                <div className="nav-divider-up"></div>
                 <nav className="nav-bar">
                     <div className="nav-menu-center">
                         <Link to="/calendar">calendar</Link>
