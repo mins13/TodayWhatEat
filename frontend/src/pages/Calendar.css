@@ -1,0 +1,35 @@
+.calendar-page {
+    display: flex;
+    flex-direction: row;
+    gap: 2rem;
+    padding: 2rem;
+    align-items: flex-start;
+}
+
+/* 왼쪽 패널 */
+.left-panel {
+    width: 320px;
+    flex-shrink: 0;
+}
+
+/* 오른쪽 패널 */
+.right-panel {
+    flex: 1;
+    min-width: 600px;
+}
+
+/* 📱 반응형: 화면이 좁을 때 (세로로 쌓이게) */
+@media (max-width: 768px) {
+    .calendar-page {
+        flex-direction: column;
+    }
+
+    .left-panel {
+        width: 100%;
+    }
+
+    .right-panel {
+        width: 100%;
+        min-width: unset;
+    }
+}

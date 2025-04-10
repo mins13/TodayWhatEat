@@ -1,0 +1,23 @@
+.calendar-main {
+    width: 100%;
+    max-width: 900px;
+    background-color: #fff;
+    border-radius: 8px;
+    padding: 1rem;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+.fc .fc-daygrid-event {
+    font-size: 0.9rem;
+    padding: 2px 4px;
+    border-radius: 4px;
+    font-weight: 500;
+}
+
+.fc .fc-toolbar {
+    display: none; /* 헤더 숨기기 */
+}
+
+.fc .fc-daygrid-day-number {
+    font-size: 0.85rem;
+}
