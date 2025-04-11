@@ -5,6 +5,9 @@ import ExpirationList from "../components/Calendar/ExpirationList";
 import MemoPad from "../components/Calendar/MemoPad";
 import CalendarMain from "../components/Calendar/CalendarMain";
 import IngredientModal from "../components/Calendar/IngredientModal";
+import IngredientListModal from "../components/Calendar/IngredientListModal";
+import MyFridgeModal from "../components/Calendar/MyFridgeModal";
+
 import "./Calendar.css";
 import Header from '../components/Header';
 import Footer from '../components/Footer';
@@ -16,6 +19,12 @@ function Calendar() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editTarget, setEditTarget] = useState(null);
     const calendarRef = useRef(null);
+    const [selectedListDate, setSelectedListDate] = useState(null);
+    const [isListModalOpen, setIsListModalOpen] = useState(false);
+    const [selectedDateItems, setSelectedDateItems] = useState([]);
+    // 상태 추가
+    const [isFridgeOpen, setIsFridgeOpen] = useState(false);
+
 
     // 날짜 변경
     const handleDateChange = (date) => {
@@ -40,19 +49,24 @@ function Calendar() {
         setIsModalOpen(true);
     };
 
+    const handleDayDoubleClick = (dateStr) => {
+        const filtered = events.filter((e) => e.date === dateStr);
+        setSelectedDateItems(filtered);
+        setSelectedListDate(dateStr);
+        setIsListModalOpen(true);
+    };
+
     // 유통기한 임박 재료 필터링 (5일 이내)
     const today = new Date();
     const nearExpiredItems = events
         .map((e) => {
-            const diff = Math.ceil((today - new Date(e.expireDate)) / (1000 * 60 * 60 * 24));
+            const diff = Math.ceil((new Date(e.expireDate) - today) / (1000 * 60 * 60 * 24));
             return {
                 ...e,
                 remainingDays: diff,
             };
         })
         .filter((item) => item.remainingDays >= 0 && item.remainingDays <= 5); // 임박한 재료만 필터링
-
-    console.log("Near Expired Items:", nearExpiredItems);
 
 
     // 저장 (등록/수정)
@@ -71,8 +85,21 @@ function Calendar() {
         setEditTarget(null);
     };
 
-    // 디버깅용: events 로그 확인
-    console.log("Events:", events);
+    const handleDelete = (target) => {
+        setEvents(prev =>
+            prev.filter(e =>
+                !(
+                    e.title === target.title &&
+                    e.purchaseDate === target.purchaseDate &&
+                    e.expireDate === target.expireDate &&
+                    e.count === target.count &&
+                    e.unit === target.unit
+                )
+            )
+        );
+    };
+
+
 
     return (
         <div className="main-container">
@@ -80,7 +107,7 @@ function Calendar() {
                 <Header />
                 <div className="calendar-page">
                     <div className="left-panel">
-                        <SmallCalendar date={currentDate} onDateChange={handleDateChange} />
+                        <SmallCalendar date={currentDate} onDateChange={handleDateChange}  events={events} onDayDoubleClick={handleDayDoubleClick}/>
                         <ExpirationList items={nearExpiredItems} /> {/* 유통기한 임박 재료 표시 */}
                         <MemoPad />
                     </div>
@@ -94,17 +121,42 @@ function Calendar() {
                             onEventClick={handleEventClick}
                             ref={calendarRef}
                         />
+                        <div className="my-fridge-button-wrapper">
+                            <button className="my-fridge-button" onClick={() => setIsFridgeOpen(true)}>
+                                나의 냉장고
+                            </button>
+                        </div>
+
                     </div>
 
                     {isModalOpen && (
                         <IngredientModal
                             date={selectedDate}
                             initialData={editTarget}
+                            items={selectedDateItems}
                             onClose={() => setIsModalOpen(false)}
                             onSave={handleSave}
+                            onDelete={handleDelete}
                         />
                     )}
+
+                    {isListModalOpen && (
+                        <IngredientListModal
+                            date={selectedListDate}
+                            items={selectedDateItems}
+                            onClose={() => setIsListModalOpen(false)}
+                        />
+                    )}
+                    {isFridgeOpen && (
+                        <MyFridgeModal
+                            events={events}
+                            onClose={() => setIsFridgeOpen(false)}
+                        />
+                    )}
+
+
                 </div>
+                <Footer />
             </div>
         </div>
     );

@@ -1,13 +1,17 @@
 import React, { useState, useEffect } from "react";
 import "./IngredientModal.css";
 
-function IngredientModal({ date, initialData = {}, onClose, onSave }) {
+function IngredientModal({ date, initialData = {}, onClose, onSave ,onDelete}) {
     const [title, setTitle] = useState("");
     const [category, setCategory] = useState("");
     const [purchaseDate, setPurchaseDate] = useState(date);
     const [expireDate, setExpireDate] = useState("");
     const [color, setColor] = useState("#f59e0b");
     const [notes, setNotes] = useState("");
+    const [count, setCount] = useState(1);
+    const [unit, setUnit] = useState("개");
+
+
 
     const isEdit = initialData && Object.keys(initialData).length > 0;
 
@@ -19,6 +23,9 @@ function IngredientModal({ date, initialData = {}, onClose, onSave }) {
             setExpireDate(initialData.expireDate || "");
             setColor(initialData.color || "#f59e0b");
             setNotes(initialData.notes || "");
+            setCount(initialData.count || 1);
+            setUnit(initialData.unit || "개");
+
         }
     }, [initialData, date]);
 
@@ -30,6 +37,8 @@ function IngredientModal({ date, initialData = {}, onClose, onSave }) {
             expireDate,
             color,
             notes,
+            count,
+            unit,
             date: purchaseDate,
         };
         onSave(newEvent);
@@ -40,6 +49,14 @@ function IngredientModal({ date, initialData = {}, onClose, onSave }) {
         const obj = new Date(d);
         return `${obj.getFullYear()}년 ${obj.getMonth() + 1}월 ${obj.getDate()}일`;
     };
+
+    const handleDelete = () => {
+        if (window.confirm("정말 삭제하시겠습니까?")) {
+            onDelete(initialData); // 상위에서 삭제 처리
+            onClose();
+        }
+    };
+
 
     return (
         <div className="modal-overlay">
@@ -74,6 +91,23 @@ function IngredientModal({ date, initialData = {}, onClose, onSave }) {
                     onChange={(e) => setExpireDate(e.target.value)}
                 />
 
+                <label>수량:</label>
+                <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", marginBottom: "1rem" }}>
+                    <input
+                        type="number"
+                        min="1"
+                        value={count}
+                        onChange={(e) => setCount(Number(e.target.value))}
+                        style={{ width: "100px" }}
+                    />
+                    <select value={unit} onChange={(e) => setUnit(e.target.value)}>
+                        <option value="개">개</option>
+                        <option value="g">g</option>
+                        <option value="ml">ml</option>
+                        <option value="컵">컵</option>
+                    </select>
+                </div>
+
                 <label>색상:</label>
                 <div className="color-options">
                     {["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#a855f7"].map((c) => (
@@ -95,6 +129,10 @@ function IngredientModal({ date, initialData = {}, onClose, onSave }) {
                 <div className="modal-buttons">
                     <button onClick={handleSubmit}>저장</button>
                     <button onClick={onClose}>취소</button>
+                    {isEdit && (
+                        <button className="delete-btn" onClick={handleDelete}>삭제</button>
+                    )}
+
                 </div>
             </div>
         </div>

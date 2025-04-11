@@ -95,3 +95,10 @@
         transform: translateY(0);
     }
 }
+.modal-content input[type="number"] {
+    padding: 0.4rem;
+    margin-bottom: 1rem;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+}
+

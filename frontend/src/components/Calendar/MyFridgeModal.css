@@ -1,0 +1,89 @@
+.modal-content.fridge-modal {
+    width: 1000px;
+    height: 500px;
+    background: white;
+    border-radius: 12px;
+    padding: 2rem;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.fridge-item-list {
+    flex: 1;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+    overflow-y: auto;
+    padding-right: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.fridge-item {
+    background-color: #ffe8f0;
+    padding: 1rem;
+    border-radius: 10px;
+    font-size: 0.95rem;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+}
+
+.fridge-item details {
+    margin-top: 0.5rem;
+}
+
+.fridge-item details ul {
+    list-style-type: disc;
+    list-style-position: inside; /* ✅ 요거! */
+    padding-left: 0.5rem; /* 약간 들여쓰기 */
+    margin-top: 0.5rem;
+}
+
+.fridge-item details li {
+    margin-bottom: 0.25rem;
+    font-size: 0.9rem;
+    color: #444;
+}
+
+
+.close-btn-wrapper {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 1.5rem;
+}
+
+.close-btn {
+    align-self: flex-end;
+    background-color: #f472b6;
+    border: none;
+    padding: 0.5rem 1rem;
+    color: white;
+    font-weight: bold;
+    border-radius: 6px;
+    cursor: pointer;
+    margin-top: 1rem;
+}
+
+
+
+.my-fridge-button-wrapper {
+    display: flex;
+    justify-content: flex-end; /* 오른쪽 정렬 */
+    margin: 1rem 0;
+}
+
+.my-fridge-button {
+    background-color: #f9a8d4; /* 연핑크 */
+    color: white;
+    border: none;
+    padding: 0.4rem 0.8rem;
+    font-size: 0.9rem;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.my-fridge-button:hover {
+    background-color: #f472b6; /* 진한 핑크 */
+}

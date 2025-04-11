@@ -1,0 +1,86 @@
+.modal-content.list-modal {
+    width: 1000px;
+    height: 500px;
+    background-color: #fff;
+    padding: 1.5rem;
+    border-radius: 12px;
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.ingredient-list {
+    list-style: none;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+    overflow-y: auto;
+    padding-right: 10px;
+    flex: 1;
+    margin-top: 1rem;
+    scrollbar-width: thin;
+    scrollbar-color: #ccc transparent;
+}
+
+.ingredient-list::-webkit-scrollbar {
+    width: 8px;
+}
+.ingredient-list::-webkit-scrollbar-thumb {
+    background-color: #ccc;
+    border-radius: 4px;
+}
+.ingredient-list::-webkit-scrollbar-track {
+    background-color: transparent;
+}
+
+.ingredient-item {
+    background-color: #fff5dc;
+    padding: 1rem;
+    border-radius: 10px;
+    font-size: 0.95rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
+    height: 130px;
+    overflow: hidden;  /* 기본은 숨김 */
+    position: relative;
+    transition: height 0.3s ease;
+}
+
+.ingredient-item.expanded {
+    height: auto;
+    overflow: visible;  /* ✅ 이거 필수! */
+}
+
+
+.ingredient-title {
+    font-weight: bold;
+    font-size: 1rem;
+    margin-bottom: 0.4rem;
+}
+
+.ingredient-sub {
+    font-size: 0.85rem;
+    color: #444;
+    line-height: 1.4;
+}
+
+.expand-btn {
+    background: none;
+    border: none;
+    color: #999;
+    font-size: 0.85rem;
+    margin-top: 0.5rem;
+    cursor: pointer;
+    text-align: right;
+    display: block;
+}
+
+.modal-buttons-wrapper {
+    margin-top: auto;
+    display: flex;
+    justify-content: flex-end;
+}
+.modal-buttons {
+    padding-top: 1rem;
+    border-top: 1px solid #eee;
+}

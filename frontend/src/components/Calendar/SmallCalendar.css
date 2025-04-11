@@ -29,3 +29,11 @@
     color: #000 !important;
     border-radius: 6px;
 }
+.event-dot {
+    width: 6px;
+    height: 6px;
+    background-color: #f59e0b;
+    border-radius: 50%;
+    margin: 2px auto 0;
+}
+
