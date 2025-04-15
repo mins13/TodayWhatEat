@@ -5,11 +5,13 @@ import InfoCard from '../components/InfoCard';
 import Footer from '../components/Footer';
 import Carousel from '../components/Carousel';
 import useScrollFadeIn from "../hooks/useScrollFadeIn.js";
+import { useNavigate } from "react-router-dom";
 
 function Main() {
     const feadIn1=useScrollFadeIn('up',0.8);
     const feadIn2=useScrollFadeIn('up',0.8);
     const feadIn3=useScrollFadeIn('up',0.8);
+    const navigate = useNavigate();
 
     return (
         <div className="main-container">
@@ -24,17 +26,15 @@ function Main() {
 
                 {/* 소개 카드 */}
                 <section className="info-section">
-                    <div {...feadIn1} >
+                    <div {...feadIn1} onClick={() => navigate("/calendar")}>
                         <InfoCard text={"Easy food\nmanagement"} imgSrc="/sample4.jpg" />
                     </div>
-                    <div {...feadIn2} >
+                    <div {...feadIn2} onClick={() => navigate("/recipe")}>
                         <InfoCard text={"Recommended\ncooking service"} imgSrc="/sample5.jpg" reverse />
                     </div>
-                    <div {...feadIn3} >
+                    <div {...feadIn3} onClick={() => navigate("/community")}>
                         <InfoCard text={"Sharing various\ninformation"} imgSrc="/sample6.jpg" />
                     </div>
-
-
                 </section>
 
                 <Footer />
