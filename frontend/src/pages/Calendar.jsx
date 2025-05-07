@@ -9,8 +9,7 @@ import IngredientListModal from "../components/Calendar/IngredientListModal";
 import MyFridgeModal from "../components/Calendar/MyFridgeModal";
 
 import "./Calendar.css";
-import Header from '../components/Header';
-import Footer from '../components/Footer';
+
 
 function Calendar() {
     const [currentDate, setCurrentDate] = useState(new Date());
@@ -104,7 +103,6 @@ function Calendar() {
     return (
         <div className="main-container">
             <div className="content-wrapper">
-                <Header />
                 <div className="calendar-page">
                     <div className="left-panel">
                         <SmallCalendar date={currentDate} onDateChange={handleDateChange}  events={events} onDayDoubleClick={handleDayDoubleClick}/>
@@ -156,7 +154,7 @@ function Calendar() {
 
 
                 </div>
-                <Footer />
+
             </div>
         </div>
     );

@@ -1,38 +1,41 @@
+/* 공통 정렬: 화면 중앙 + 최소 높이 지정 */
 .main-container {
     display: flex;
-    justify-content: center;
-    width: 100%;
+    flex-direction: column;
+    min-height: 100vh;
 }
 
+/* 중앙 정렬과 최대 너비 유지 */
 .content-wrapper {
-    width: 100%;
-    max-width: 1200px;
-    padding: 2rem 1rem;
     display: flex;
     flex-direction: column;
     align-items: center;
+    justify-content: flex-start;
+    flex: 1;
+    width: 100%;
+    max-width: 1200px;
+    margin: 2rem auto;
+    padding: 2rem 1rem;
 }
 
+/* 슬라이더 영역 */
 .main-carousel {
     width: 100%;
-    height: auto;
     display: flex;
     justify-content: center;
     align-items: center;
     margin-bottom: 3rem;
-
 }
 
 .main-carousel img {
     width: 100%;
-    height: auto;
     max-height: 600px;
     border-radius: 10px;
     object-fit: cover;
     display: block;
 }
 
-
+/* 카드 리스트 */
 .info-section {
     display: flex;
     flex-direction: column;

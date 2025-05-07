@@ -1,13 +1,12 @@
 import React from 'react';
 import './Signup.css';
-import Header from '../components/Header';
-import Footer from '../components/Footer';
+
 
 function Signup() {
     return (
         <div className="main-container">
             <div className="content-wrapper">
-            <Header />
+
             <div className="signup-container">
                 <div className="signup-box">
                     <h2>회원가입</h2>
@@ -19,7 +18,7 @@ function Signup() {
                     <button className="signup-btn">회원가입</button>
                 </div>
             </div>
-            <Footer />
+
         </div>
         </div>
     );

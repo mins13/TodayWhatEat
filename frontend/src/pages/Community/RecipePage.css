@@ -1,0 +1,136 @@
+.recipe-header {
+    margin-bottom: 1rem;
+}
+
+.recipe-header h2 {
+    font-size: 1.5rem;
+    margin-bottom: 0.3rem;
+}
+
+.recipe-bar {
+    height: 2px;
+    background-color: #444;
+    width: 100%;
+    margin-top: 0.2rem;
+    margin-bottom: 1.5rem;
+}
+
+.recipe-search {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 24px;
+}
+
+.recipe-search input {
+    flex: 1;
+    padding: 10px 16px;
+    border: 1px solid #ccc;
+    border-radius: 24px;
+    font-size: 14px;
+    outline: none;
+}
+
+.search-button {
+    background-color: #f4f4f4;
+    border: 1px solid #ccc;
+    border-radius: 50%;
+    padding: 8px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.search-button:hover {
+    background-color: #e4e4e4;
+}
+
+.search-button img {
+    width: 18px;
+    height: 18px;
+}
+
+.recipe-write-btn {
+    float: right;
+    background-color: #f9f5c8;
+    padding: 0.5rem 1rem;
+    border-radius: 5px;
+    border: none;
+    cursor: pointer;
+    margin-bottom: 1rem;
+}
+
+.recipe-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.recipe-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 1rem;
+    border: 1px solid #bbb;
+    border-radius: 8px;
+    cursor: pointer;
+    min-height: 80px; /* 박스 높이 최소 고정 */
+    box-sizing: border-box;
+}
+
+.recipe-title {
+    font-weight: bold;
+    margin-bottom: 0.3rem;
+}
+
+.recipe-content {
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+}
+
+.recipe-right {
+    text-align: right;
+    font-size: 0.85rem;
+    color: #333;
+}
+
+.actions span {
+    margin-left: 0.5rem;
+    color: #555;
+    cursor: pointer;
+    font-size: 0.8rem;
+}
+
+.recipe-pagination {
+    text-align: center;
+    margin: 2rem 0;
+}
+
+.recipe-pagination span {
+    margin: 0 0.3rem;
+    cursor: pointer;
+}
+
+.main-container {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+.community-wrapper {
+    display: flex;
+    flex: 1;
+    max-width: 1100px;
+    margin: 2rem auto;
+    gap: 2rem;
+    padding: 0 1rem;
+}
+
+.left-panel {
+    width: 200px;
+}
+
+.right-panel {
+    flex: 1;
+}

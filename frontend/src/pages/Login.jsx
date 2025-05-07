@@ -1,8 +1,7 @@
 import React from 'react';
 import './Login.css';
 import { useNavigate } from "react-router-dom";
-import Header from '../components/Header';
-import Footer from '../components/Footer';
+
 
 function Login() {
     const navigate = useNavigate();
@@ -13,7 +12,7 @@ function Login() {
     return (
         <div className="main-container">
             <div className="content-wrapper">
-            <Header />
+
             <div className="login-container">
 
                 <div className="login-box">
@@ -25,7 +24,7 @@ function Login() {
                     <button className="signup-btn" onClick={handleSignup}>회원가입</button>
                 </div>
             </div>
-            <Footer />
+
         </div>
         </div>
     );

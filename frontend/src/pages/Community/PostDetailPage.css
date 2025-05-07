@@ -1,0 +1,39 @@
+.post-detail {
+    max-width: 800px;
+    margin: 0 auto;
+    font-family: 'Pretendard', sans-serif;
+}
+
+.post-detail-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+
+.post-detail-title {
+    font-size: 1.5rem;
+    font-weight: bold;
+}
+
+.post-detail-meta {
+    font-size: 0.9rem;
+    color: #777;
+    margin-bottom: 1rem;
+}
+
+.post-detail-content {
+    white-space: pre-line;
+    border-top: 1px solid #ddd;
+    padding-top: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.post-detail button {
+    background-color: #ccc;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+}
+

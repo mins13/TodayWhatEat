@@ -1,5 +1,5 @@
 import React from "react";
-import "./ExpirationList.css"; // ✅ CSS 파일 연결
+import "./ExpirationList.css";
 
 function ExpirationList({ items }) {
     return (

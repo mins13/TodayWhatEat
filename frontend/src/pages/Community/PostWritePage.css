@@ -1,0 +1,50 @@
+.write-form {
+    max-width: 800px;
+    margin: 0 auto;
+    font-family: 'Pretendard', sans-serif;
+}
+
+.form-title {
+    font-size: 1.75rem;
+    font-weight: bold;
+    margin-bottom: 2rem;
+}
+
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-group label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.form-group input,
+.form-group textarea {
+    width: 100%;
+    border: 1px solid #999;
+    padding: 1rem;
+    font-size: 1rem;
+    border-radius: 4px;
+}
+
+.form-group textarea {
+    min-height: 250px;
+    resize: vertical;
+}
+
+.form-bottom {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+}
+
+.form-bottom button {
+    background-color: #e6dcd8;
+    border: none;
+    padding: 0.5rem 1.25rem;
+    font-size: 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+}

@@ -1,8 +1,6 @@
 import React from 'react';
 import './Main.css';
-import Header from '../components/Header';
 import InfoCard from '../components/InfoCard';
-import Footer from '../components/Footer';
 import Carousel from '../components/Carousel';
 import useScrollFadeIn from "../hooks/useScrollFadeIn.js";
 import { useNavigate } from "react-router-dom";
@@ -16,7 +14,7 @@ function Main() {
     return (
         <div className="main-container">
             <div className="content-wrapper">
-                <Header />
+
                 <section className="main-carousel">
                     {/* 슬라이드 */}
                     <Carousel />
@@ -37,7 +35,7 @@ function Main() {
                     </div>
                 </section>
 
-                <Footer />
+
             </div>
         </div>
     );

@@ -1,0 +1,105 @@
+.info-header {
+    margin-bottom: 1rem;
+}
+
+.info-header h2 {
+    font-size: 1.5rem;
+    margin-bottom: 0.3rem;
+}
+
+.info-bar {
+    height: 2px;
+    background-color: #444;
+    width: 100%;
+    margin-top: 0.2rem;
+    margin-bottom: 1.5rem;
+}
+
+.info-search {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 24px;
+}
+
+.info-search input {
+    flex: 1;
+    padding: 10px 16px;
+    border: 1px solid #ccc;
+    border-radius: 24px;
+    font-size: 14px;
+    outline: none;
+}
+
+.search-button {
+    background-color: #f4f4f4;
+    border: 1px solid #ccc;
+    border-radius: 50%;
+    padding: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.search-button:hover {
+    background-color: #e4e4e4;
+}
+
+.search-button img {
+    width: 18px;
+    height: 18px;
+}
+
+.info-write-btn {
+    float: right;
+    background-color: #f9f5c8;
+    padding: 0.5rem 1rem;
+    border-radius: 5px;
+    border: none;
+    cursor: pointer;
+    margin-bottom: 1rem;
+}
+
+.info-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.info-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 1rem;
+    border: 1px solid #bbb;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+.info-title {
+    font-weight: bold;
+    margin-bottom: 0.3rem;
+}
+
+.info-right {
+    text-align: right;
+    font-size: 0.85rem;
+    color: #333;
+}
+
+.actions span {
+    margin-left: 0.5rem;
+    color: #555;
+    cursor: pointer;
+    font-size: 0.8rem;
+}
+
+.info-pagination {
+    text-align: center;
+    margin: 2rem 0;
+}
+
+.info-pagination span {
+    margin: 0 0.3rem;
+    cursor: pointer;
+}

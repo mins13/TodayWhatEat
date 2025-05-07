@@ -1,0 +1,107 @@
+
+.free-header {
+    margin-bottom: 1rem;
+}
+
+.free-header h2 {
+    font-size: 1.5rem;
+    margin-bottom: 0.3rem;
+}
+
+.free-bar {
+    height: 2px;
+    background-color: #444;
+    width: 100%;
+    margin-top: 0.2rem;
+    margin-bottom: 1.5rem;
+}
+
+.free-search {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 24px;
+}
+
+.free-search input {
+    flex: 1;
+    padding: 10px 16px;
+    border: 1px solid #ccc;
+    border-radius: 24px;
+    font-size: 14px;
+    outline: none;
+}
+
+.search-button {
+    background-color: #f4f4f4;
+    border: 1px solid #ccc;
+    border-radius: 50%;
+    padding: 8px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.search-button:hover {
+    background-color: #e4e4e4;
+}
+
+.search-button img {
+    width: 18px;
+    height: 18px;
+}
+
+.free-write-btn {
+    float: right;
+    background-color: #f9f5c8;
+    padding: 0.5rem 1rem;
+    border-radius: 5px;
+    border: none;
+    cursor: pointer;
+    margin-bottom: 1rem;
+}
+
+.free-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.free-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 1rem;
+    border: 1px solid #bbb;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+.free-title {
+    font-weight: bold;
+    margin-bottom: 0.3rem;
+}
+
+.free-right {
+    text-align: right;
+    font-size: 0.85rem;
+    color: #333;
+}
+
+.actions span {
+    margin-left: 0.5rem;
+    color: #555;
+    cursor: pointer;
+    font-size: 0.8rem;
+}
+
+.free-pagination {
+    text-align: center;
+    margin: 2rem 0;
+}
+
+.free-pagination span {
+    margin: 0 0.3rem;
+    cursor: pointer;
+}
