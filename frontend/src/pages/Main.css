@@ -1,21 +1,15 @@
-/* 공통 정렬: 화면 중앙 + 최소 높이 지정 */
-.main-container {
-    display: flex;
-    flex-direction: column;
-    min-height: 100vh;
-}
 
 /* 중앙 정렬과 최대 너비 유지 */
 .content-wrapper {
+    margin-top: 0;
+    padding-top: 0;
+    /* 나머지 정렬만 유지 */
+    max-width: 1100px;
+    padding: 1rem 1rem; /* 아래 여백만 유지 */
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: flex-start;
     flex: 1;
-    width: 100%;
-    max-width: 1200px;
-    margin: 2rem auto;
-    padding: 2rem 1rem;
 }
 
 /* 슬라이더 영역 */

@@ -6,12 +6,12 @@ const AppLayout = ({ children }) => {
     return (
         <div className="app-layout">
             <div className= "content-wrapper">
-            <Header />
-            </div>
+                <Header />
             <main className="main-container">
                 {children}
             </main>
             <Footer />
+            </div>
         </div>
     );
 };
