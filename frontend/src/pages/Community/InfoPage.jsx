@@ -1,12 +1,14 @@
-import React from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-
 import Sidebar from "../../components/Community/CommunityLayout";
 import searchIcon from "../../assets/Icon.jpg";
 import "./InfoPage.css";
 
 export default function InfoPage() {
     const navigate = useNavigate();
+    const [currentPage, setCurrentPage] = useState(1);
+    const postsPerPage = 5;
+    const pageLimit = 5;
 
     const infoList = [
         {
@@ -27,7 +29,27 @@ export default function InfoPage() {
             content: "냉장고 정리 잘하면 음식물 쓰레기도 줄어요~",
             author: "살림왕",
         },
+        ...Array.from({ length: 10 }, (_, i) => ({
+            id: i + 4,
+            title: `냉장고 정보 ${i + 4}`,
+            content: `${i + 4}번 정보게시글 내용입니다...`,
+            author: `작성자${i + 4}`,
+        }))
     ];
+
+    const totalPages = Math.ceil(infoList.length / postsPerPage);
+    const indexOfLastPost = currentPage * postsPerPage;
+    const indexOfFirstPost = indexOfLastPost - postsPerPage;
+    const currentPosts = infoList.slice(indexOfFirstPost, indexOfLastPost);
+
+    const currentGroup = Math.floor((currentPage - 1) / pageLimit);
+    const startPage = currentGroup * pageLimit + 1;
+    const endPage = Math.min(startPage + pageLimit - 1, totalPages);
+
+    const pageNumbers = [];
+    for (let i = startPage; i <= endPage; i++) {
+        pageNumbers.push(i);
+    }
 
     const handleSearch = () => {
         alert("검색 실행");
@@ -61,7 +83,7 @@ export default function InfoPage() {
                     </div>
 
                     <div className="info-list">
-                        {infoList.map((info) => (
+                        {currentPosts.map((info) => (
                             <div
                                 className="info-item"
                                 key={info.id}
@@ -82,14 +104,47 @@ export default function InfoPage() {
                         ))}
                     </div>
 
-                    <div className="info-pagination">
-                        <span>1</span>
-                        <span>2</span>
-                        <span>3</span>
-                    </div>
+                    {totalPages >= 1 && (
+                        <div className="info-pagination">
+                            <button
+                                onClick={() => setCurrentPage(1)}
+                                disabled={currentPage === 1}
+                            >
+                                《
+                            </button>
+                            <button
+                                onClick={() => setCurrentPage(startPage - 1)}
+                                disabled={startPage === 1}
+                            >
+                                〈
+                            </button>
+
+                            {pageNumbers.map((page) => (
+                                <span
+                                    key={page}
+                                    className={page === currentPage ? "active-page" : ""}
+                                    onClick={() => setCurrentPage(page)}
+                                >
+                                    {page}
+                                </span>
+                            ))}
+
+                            <button
+                                onClick={() => setCurrentPage(endPage + 1)}
+                                disabled={endPage === totalPages}
+                            >
+                                〉
+                            </button>
+                            <button
+                                onClick={() => setCurrentPage(totalPages)}
+                                disabled={currentPage === totalPages}
+                            >
+                                》
+                            </button>
+                        </div>
+                    )}
                 </div>
             </div>
-
         </div>
     );
 }

@@ -1,47 +1,61 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import './PostWritePage.css';
+import React, { useState } from "react";
+import Header from "../../components/Header";
+import Footer from "../../components/Footer";
+import Sidebar from "../../components/Community/CommunityLayout";
+import "./PostWritePage.css";
 
 export default function PostWritePage() {
     const [title, setTitle] = useState("");
     const [content, setContent] = useState("");
-    const navigate = useNavigate();
+    const [board, setBoard] = useState("자유 게시판");
 
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        console.log("제목:", title);
-        console.log("내용:", content);
-        navigate("/community/notice");
+    const handleSubmit = () => {
+        alert(`제목: ${title}\n내용: ${content}\n게시판: ${board}`);
+        // TODO: 실제 저장 API 연결
     };
 
     return (
-        <div className="write-form">
-            <h2 className="form-title">글쓰기</h2>
-            <form onSubmit={handleSubmit}>
-                <div className="form-group">
-                    <label>제목</label>
+        <div className="main-container">
+            <div className="community-wrapper">
+                <div className="left-panel">
+                    <Sidebar />
+                </div>
+
+                <div className="right-panel">
+                    <h2 className="write-title">글쓰기</h2>
+
                     <input
-                        type="text"
+                        className="write-input"
+                        placeholder="제목을 작성하세요."
                         value={title}
                         onChange={(e) => setTitle(e.target.value)}
-                        required
                     />
-                </div>
 
-                <div className="form-group">
-                    <label>내용</label>
                     <textarea
+                        className="write-textarea"
+                        placeholder="내용을 작성하세요."
                         value={content}
                         onChange={(e) => setContent(e.target.value)}
-                        required
-                    ></textarea>
-                </div>
+                    />
 
-                <div className="form-bottom">
-                    <button type="button" onClick={() => navigate(-1)}>취소</button>
-                    <button type="submit">작성 완료</button>
+                    <div className="write-bottom">
+                        <label>게시판 선택</label>
+                        <select
+                            className="write-select"
+                            value={board}
+                            onChange={(e) => setBoard(e.target.value)}
+                        >
+                            <option>자유 게시판</option>
+                            <option>레시피 게시판</option>
+                            <option>정보 게시판</option>
+                        </select>
+
+                        <button className="write-submit" onClick={handleSubmit}>
+                            저장
+                        </button>
+                    </div>
                 </div>
-            </form>
+            </div>
         </div>
     );
 }

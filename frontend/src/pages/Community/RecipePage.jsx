@@ -1,12 +1,14 @@
-import React from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-
 import Sidebar from "../../components/Community/CommunityLayout";
 import searchIcon from "../../assets/Icon.jpg";
 import "./RecipePage.css";
 
 export default function RecipePage() {
     const navigate = useNavigate();
+    const [currentPage, setCurrentPage] = useState(1);
+    const postsPerPage = 5;
+    const pageLimit = 5;
 
     const recipePosts = [
         {
@@ -27,7 +29,27 @@ export default function RecipePage() {
             content: "다이어트 중인데도 맛있게 먹고 싶을 때 강추!",
             author: "헬스보이",
         },
+        // 예시용 더미 게시글
+        ...Array.from({ length: 22 }, (_, i) => ({
+            id: i + 4,
+            title: `레시피 게시글 ${i + 4}`,
+            content: `${i + 4}번 레시피입니다.`,
+            author: `작성자${i + 4}`,
+        }))
     ];
+
+    const totalPages = Math.ceil(recipePosts.length / postsPerPage);
+    const indexOfLastPost = currentPage * postsPerPage;
+    const indexOfFirstPost = indexOfLastPost - postsPerPage;
+    const currentPosts = recipePosts.slice(indexOfFirstPost, indexOfLastPost);
+
+    const currentGroup = Math.floor((currentPage - 1) / pageLimit);
+    const startPage = currentGroup * pageLimit + 1;
+    const endPage = Math.min(startPage + pageLimit - 1, totalPages);
+    const pageNumbers = [];
+    for (let i = startPage; i <= endPage; i++) {
+        pageNumbers.push(i);
+    }
 
     const handleSearch = () => {
         alert("검색 실행");
@@ -35,8 +57,6 @@ export default function RecipePage() {
 
     return (
         <div className="main-container">
-
-
             <div className="community-wrapper">
                 <div className="left-panel">
                     <Sidebar />
@@ -62,7 +82,7 @@ export default function RecipePage() {
                     </div>
 
                     <div className="recipe-list">
-                        {recipePosts.map((post) => (
+                        {currentPosts.map((post) => (
                             <div
                                 className="recipe-item"
                                 key={post.id}
@@ -83,14 +103,47 @@ export default function RecipePage() {
                         ))}
                     </div>
 
-                    <div className="recipe-pagination">
-                        <span>1</span>
-                        <span>2</span>
-                        <span>3</span>
-                    </div>
+                    {totalPages >= 1 && (
+                        <div className="recipe-pagination">
+                            <button
+                                onClick={() => setCurrentPage(1)}
+                                disabled={currentPage === 1}
+                            >
+                                《
+                            </button>
+                            <button
+                                onClick={() => setCurrentPage(startPage - 1)}
+                                disabled={startPage === 1}
+                            >
+                                〈
+                            </button>
+
+                            {pageNumbers.map((page) => (
+                                <span
+                                    key={page}
+                                    className={page === currentPage ? "active-page" : ""}
+                                    onClick={() => setCurrentPage(page)}
+                                >
+                                    {page}
+                                </span>
+                            ))}
+
+                            <button
+                                onClick={() => setCurrentPage(endPage + 1)}
+                                disabled={endPage === totalPages}
+                            >
+                                〉
+                            </button>
+                            <button
+                                onClick={() => setCurrentPage(totalPages)}
+                                disabled={currentPage === totalPages}
+                            >
+                                》
+                            </button>
+                        </div>
+                    )}
                 </div>
             </div>
-
         </div>
     );
 }
