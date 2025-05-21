@@ -10,6 +10,10 @@ import InfoPage from "./pages/Community/InfoPage";
 import PostWritePage from "./pages/Community/PostWritePage";
 import PostDetailPage from "./pages/Community/PostDetailPage";
 import AppLayout from './components/AppLayout';
+import RecipeListPage from './pages/Recipe/RecipeListPage.jsx';
+import RecipeRecommendPage from "./pages/Recipe/RecipeRecommendPage.jsx";
+import RecipeDetailPage from "./pages/Recipe/RecipeDetailPage.jsx";
+
 
 function App() {
     return (
@@ -25,6 +29,10 @@ function App() {
                 <Route path="/community/info" element={<AppLayout><InfoPage /></AppLayout>} />
                 <Route path="/community/write" element={<AppLayout><PostWritePage /></AppLayout>} />
                 <Route path="/community/:postId" element={<AppLayout><PostDetailPage /></AppLayout>} />
+                <Route path="/recipe" element={<AppLayout><RecipeListPage/></AppLayout>}/>
+                <Route path="/recipe/recommend" element={<AppLayout><RecipeRecommendPage/></AppLayout>}/>
+                <Route path="/recipe/:id" element={<AppLayout><RecipeDetailPage /></AppLayout>} />
+
             </Routes>
         </Router>
     );

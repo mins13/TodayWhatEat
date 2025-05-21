@@ -73,7 +73,12 @@ export default function PostDetailPage() {
                 </div>
 
                 <div className="right-panel">
-                    <h2 className="page-title">자유 게시판</h2>
+                    <div className="post-header">
+                        <h2 className="page-title">자유 게시판</h2>
+                        <button className="back-button" onClick={() => navigate("/community/free")}>
+                            목록으로
+                        </button>
+                    </div>
                     <hr className="title-divider" />
 
                     <div className="post-box">
