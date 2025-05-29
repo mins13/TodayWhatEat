@@ -1,36 +1,198 @@
-.detail-header {
+.recipe-detail-container {
+    display: flex;
+    justify-content: center;
+    padding-top: 2rem;
+}
+
+.recipe-detail-wrapper {
+    display: flex;
+    width: 100%;
+    max-width: 1100px;
+}
+
+.recipe-detail-left-panel {
+    width: 180px;
+}
+
+.recipe-detail-right-panel {
+    flex: 1;
+    padding: 2rem 3rem;
+}
+
+.recipe-detail-title {
+    font-size: 1.8rem;
+    font-weight: bold;
+    border-bottom: 1px solid #ccc;
+    padding-bottom: 0.5rem;
+    margin-bottom: 2rem;
+}
+
+.recipe-detail-top {
+    display: flex;
+    gap: 2rem;
+}
+
+.recipe-detail-image {
+    width: 400px;
+    height: auto;
+    border-radius: 8px;
+}
+
+.recipe-detail-table-box {
+    flex: 1;
+}
+
+.recipe-detail-table {
+    width: 100%;
+    border: 1px solid #ccc;
+    border-collapse: collapse;
+}
+
+.recipe-detail-table th,
+.recipe-detail-table td {
+    border: 1px solid #ccc;
+    padding: 8px 10px;
+    font-size: 0.95rem;
+}
+
+.recipe-detail-ingredient-cell {
     display: flex;
     justify-content: space-between;
     align-items: center;
 }
-.detail-title {
-    font-size: 1.8rem;
-    font-weight: bold;
-}
-.back-btn {
-    padding: 6px 12px;
-    background-color: #007bff;
-    color: white;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-}
-.detail-image {
-    width: 100%;
-    max-width: 400px;
-    margin: 1rem 0;
-}
-.ingredient-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-bottom: 1.5rem;
-}
-.ingredient-table th,
-.ingredient-table td {
+
+.recipe-detail-remove-btn {
+    padding: 4px 10px;
+    font-size: 0.8rem;
+    background-color: white;
     border: 1px solid #ccc;
-    padding: 0.5rem;
-    text-align: left;
+    border-radius: 999px;
+    color: #333;
+    cursor: pointer;
+    transition: 0.2s;
 }
-.recipe-steps ol {
+
+.recipe-detail-remove-btn:hover {
+    background-color: #f5f5f5;
+    border-color: #888;
+}
+
+.recipe-detail-remove-all-wrapper {
+    text-align: right;
+    margin-top: 0.5rem;
+}
+
+.recipe-detail-remove-all-btn {
+    padding: 6px 12px;
+    font-size: 0.85rem;
+    background-color: white;
+    color: #333;
+    border: 1px solid #ccc;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.recipe-detail-remove-all-btn:hover {
+    background-color: #f5f5f5;
+    border-color: #888;
+}
+
+.recipe-detail-description {
+    border: 1px solid #aaa;
+    border-radius: 6px;
+    padding: 1.2rem;
+    font-size: 0.95rem;
+    line-height: 1.6;
+    white-space: pre-line;
+    margin-top: 2rem;
+}
+
+.recipe-detail-description h4 {
+    font-size: 1.1rem;
+    font-weight: bold;
+    margin-bottom: 1rem;
+}
+
+.recipe-detail-description ol {
     padding-left: 1.2rem;
+}
+
+.recipe-detail-description li {
+    margin-bottom: 0.5rem;
+}
+
+.recipe-detail-show-more-btn {
+    display: block;
+    margin: 1rem auto 0;
+    font-size: 0.9rem;
+    cursor: pointer;
+    background: none;
+    border: none;
+    color: #333;
+}
+
+.recipe-detail-footer {
+    margin-top: 3rem;
+    text-align: center;
+}
+
+.recipe-detail-recommend-title {
+    font-size: 1.2rem;
+    font-weight: bold;
+    margin-bottom: 1rem;
+}
+
+.recipe-detail-back-btn {
+    padding: 8px 16px;
+    font-size: 0.95rem;
+    border: 1px solid #ccc;
+    background-color: white;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.recipe-detail-back-btn:hover {
+    background-color: #f0f0f0;
+}
+.recipe-detail-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.4);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.recipe-detail-modal {
+    background: white;
+    padding: 2rem;
+    border-radius: 8px;
+    width: 300px;
+    text-align: center;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.recipe-detail-modal-buttons {
+    margin-top: 1.5rem;
+    display: flex;
+    justify-content: space-between;
+}
+
+.recipe-detail-modal-buttons button {
+    padding: 0.5rem 1.2rem;
+    border: 1px solid #aaa;
+    border-radius: 6px;
+    background-color: white;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.recipe-detail-modal-buttons button:hover {
+    background-color: #eee;
 }
