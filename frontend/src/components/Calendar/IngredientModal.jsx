@@ -10,6 +10,7 @@ function IngredientModal({ date, initialData = {}, onClose, onSave ,onDelete}) {
     const [notes, setNotes] = useState("");
     const [count, setCount] = useState(1);
     const [unit, setUnit] = useState("개");
+    const [errors, setErrors] = useState({});
 
 
 
@@ -30,19 +31,30 @@ function IngredientModal({ date, initialData = {}, onClose, onSave ,onDelete}) {
     }, [initialData, date]);
 
     const handleSubmit = () => {
+        const newErrors = {};
+
+        if (!title.trim()) newErrors.title = "재료 이름은 필수입니다.";
+        if (!purchaseDate) newErrors.purchaseDate = "구매일은 필수입니다.";
+        if (!expireDate) newErrors.expireDate = "유통기한은 필수입니다.";
+
+        if (Object.keys(newErrors).length > 0) {
+            setErrors(newErrors);
+            return;
+        }
+
+        // 유효성 통과 → 저장
         const newEvent = {
             title,
-            category,
             purchaseDate,
             expireDate,
-            color,
-            notes,
             count,
             unit,
-            date: purchaseDate,
+            category,
+            color,
+            memo: notes
         };
+
         onSave(newEvent);
-        onClose();
     };
 
     const formatDate = (d) => {
@@ -69,6 +81,7 @@ function IngredientModal({ date, initialData = {}, onClose, onSave ,onDelete}) {
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
                 />
+                {errors.title && <div className="input-error">{errors.title}</div>}
 
                 <input
                     type="text"
@@ -83,6 +96,7 @@ function IngredientModal({ date, initialData = {}, onClose, onSave ,onDelete}) {
                     value={purchaseDate}
                     onChange={(e) => setPurchaseDate(e.target.value)}
                 />
+                {errors.purchaseDate && <div className="input-error">{errors.purchaseDate}</div>}
 
                 <label>유통기한:</label>
                 <input
@@ -90,6 +104,7 @@ function IngredientModal({ date, initialData = {}, onClose, onSave ,onDelete}) {
                     value={expireDate}
                     onChange={(e) => setExpireDate(e.target.value)}
                 />
+                {errors.expireDate && <div className="input-error">{errors.expireDate}</div>}
 
                 <label>수량:</label>
                 <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", marginBottom: "1rem" }}>

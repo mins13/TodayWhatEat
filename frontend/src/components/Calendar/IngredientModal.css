@@ -102,3 +102,9 @@
     border: 1px solid #ccc;
 }
 
+.input-error {
+    color: red;
+    font-size: 0.75rem;
+    margin-top: 0.3rem;
+    margin-bottom: 0.5rem;
+}

@@ -1,31 +1,71 @@
-import React from 'react';
+import React, { useState } from 'react';
 import './Login.css';
 import { useNavigate } from "react-router-dom";
+import { loginUser } from "../api/userApi";
 
-
-function Login() {
+function Login({ setIsLoggedIn }) {
     const navigate = useNavigate();
+    const [form, setForm] = useState({ username: "", password: "" });
+    const [error, setError] = useState(""); // 🔴 에러 메시지 상태
+
+    const handleChange = (e) => {
+        setForm({ ...form, [e.target.name]: e.target.value });
+        setError(""); // 입력 중이면 에러 초기화
+    };
+
+    const handleLogin = async (e) => {
+        e.preventDefault();
+
+        try {
+            const response = await loginUser(form);
+
+            localStorage.setItem("token", response.token);
+            localStorage.setItem("nickname", response.nickname);
+            setIsLoggedIn(true);
+            navigate("/");
+        } catch (error) {
+            console.error("로그인 실패:", error);
+            setError("아이디 또는 비밀번호가 틀렸습니다."); // 🔴 에러 표시
+        }
+    };
 
     const handleSignup = () => {
         navigate("/signup");
     };
+
     return (
         <div className="main-container">
             <div className="content-wrapper">
+                <div className="login-container">
+                    <div className="login-box">
+                        <h2>로그인</h2>
+                        <form onSubmit={handleLogin}>
+                            <input
+                                name="username"
+                                type="text"
+                                placeholder="아이디"
+                                value={form.username}
+                                onChange={handleChange}
+                                required
+                            />
+                            <input
+                                name="password"
+                                type="password"
+                                placeholder="비밀번호"
+                                value={form.password}
+                                onChange={handleChange}
+                                required
+                            />
 
-            <div className="login-container">
+                            {/* 🔴 에러 메시지 출력 */}
+                            {error && <p className="login-error">{error}</p>}
 
-                <div className="login-box">
-
-                    <h2>로그인</h2>
-                    <input type="text" placeholder="아이디를 입력해주세요" />
-                    <input type="password" placeholder="비밀번호를 입력해주세요" />
-                    <button className="login-btn">로그인</button>
-                    <button className="signup-btn" onClick={handleSignup}>회원가입</button>
+                            <button type="submit" className="login-btn">로그인</button>
+                            <button type="button" className="signup-btn" onClick={handleSignup}>회원가입</button>
+                        </form>
+                    </div>
                 </div>
             </div>
-
-        </div>
         </div>
     );
 }

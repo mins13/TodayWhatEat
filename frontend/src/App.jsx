@@ -1,4 +1,6 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+
 import Main from './pages/Main';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
@@ -13,30 +15,45 @@ import AppLayout from './components/AppLayout';
 import RecipeListPage from './pages/Recipe/RecipeListPage.jsx';
 import RecipeRecommendPage from "./pages/Recipe/RecipeRecommendPage.jsx";
 import RecipeDetailPage from "./pages/Recipe/RecipeDetailPage.jsx";
-
+import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
+    const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+    useEffect(() => {
+        const token = localStorage.getItem("token");
+        if (token) setIsLoggedIn(true);
+    }, []);
+
+    const withLayout = (Component) => (
+        <AppLayout isLoggedIn={isLoggedIn} setIsLoggedIn={setIsLoggedIn}>
+            <Component setIsLoggedIn={setIsLoggedIn} />
+        </AppLayout>
+    );
+
     return (
         <Router>
             <Routes>
-                <Route path="/" element={<AppLayout><Main /></AppLayout>} />
-                <Route path="/login" element={<AppLayout><Login /></AppLayout>} />
-                <Route path="/signup" element={<AppLayout><Signup /></AppLayout>} />
-                <Route path="/calendar" element={<AppLayout><CalendarPage /></AppLayout>} />
-                <Route path="/community" element={<AppLayout><NoticePage /></AppLayout>} />
-                <Route path="/community/free" element={<AppLayout><FreePage /></AppLayout>} />
-                <Route path="/community/recipe" element={<AppLayout><RecipePage /></AppLayout>} />
-                <Route path="/community/info" element={<AppLayout><InfoPage /></AppLayout>} />
-                <Route path="/community/write" element={<AppLayout><PostWritePage /></AppLayout>} />
-                <Route path="/community/:postId" element={<AppLayout><PostDetailPage /></AppLayout>} />
-                <Route path="/recipe" element={<AppLayout><RecipeListPage/></AppLayout>}/>
-                <Route path="/recipe/recommend" element={<AppLayout><RecipeRecommendPage/></AppLayout>}/>
-                <Route path="/recipe/:id" element={<AppLayout><RecipeDetailPage /></AppLayout>} />
-
+                <Route path="/" element={<AppLayout isLoggedIn={isLoggedIn} setIsLoggedIn={setIsLoggedIn}><Main /></AppLayout>} />
+                <Route path="/login" element={
+                    <AppLayout isLoggedIn={isLoggedIn} setIsLoggedIn={setIsLoggedIn}>
+                        <Login setIsLoggedIn={setIsLoggedIn} />
+                    </AppLayout>
+                } />
+                <Route path="/signup" element={<AppLayout isLoggedIn={isLoggedIn} setIsLoggedIn={setIsLoggedIn}><Signup /></AppLayout>} />
+                <Route path="/calendar" element={<ProtectedRoute><AppLayout isLoggedIn={isLoggedIn} setIsLoggedIn={setIsLoggedIn}><CalendarPage /></AppLayout></ProtectedRoute>} />
+                <Route path="/community" element={<AppLayout isLoggedIn={isLoggedIn} setIsLoggedIn={setIsLoggedIn}><NoticePage /></AppLayout>} />
+                <Route path="/community/free" element={<AppLayout isLoggedIn={isLoggedIn} setIsLoggedIn={setIsLoggedIn}><FreePage /></AppLayout>} />
+                <Route path="/community/recipe" element={<AppLayout isLoggedIn={isLoggedIn} setIsLoggedIn={setIsLoggedIn}><RecipePage /></AppLayout>} />
+                <Route path="/community/info" element={<AppLayout isLoggedIn={isLoggedIn} setIsLoggedIn={setIsLoggedIn}><InfoPage /></AppLayout>} />
+                <Route path="/community/write" element={<AppLayout isLoggedIn={isLoggedIn} setIsLoggedIn={setIsLoggedIn}><PostWritePage /></AppLayout>} />
+                <Route path="/community/:postId" element={<AppLayout isLoggedIn={isLoggedIn} setIsLoggedIn={setIsLoggedIn}><PostDetailPage /></AppLayout>} />
+                <Route path="/recipe" element={<AppLayout isLoggedIn={isLoggedIn} setIsLoggedIn={setIsLoggedIn}><RecipeListPage /></AppLayout>} />
+                <Route path="/recipe/recommend" element={<AppLayout isLoggedIn={isLoggedIn} setIsLoggedIn={setIsLoggedIn}><RecipeRecommendPage /></AppLayout>} />
+                <Route path="/recipe/:id" element={<AppLayout isLoggedIn={isLoggedIn} setIsLoggedIn={setIsLoggedIn}><RecipeDetailPage /></AppLayout>} />
             </Routes>
         </Router>
     );
 }
-
 
 export default App;

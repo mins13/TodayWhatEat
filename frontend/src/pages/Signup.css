@@ -39,3 +39,27 @@
     cursor: pointer;
     width: 100%;
 }
+.signup-error {
+    color: red;
+    font-size: 0.9rem;
+    margin-top: 0.3rem;
+    text-align: left;
+}
+
+.input-group {
+    margin-bottom: 1rem;
+}
+
+.error-msg {
+    color: red;
+    font-size: 0.85rem;
+    margin-top: 0.25rem;
+    margin-bottom: 0.5rem;
+}
+
+.signup-error {
+    color: red;
+    font-size: 0.85rem;
+    margin-top: 4px;
+    margin-left: 4px;
+}
