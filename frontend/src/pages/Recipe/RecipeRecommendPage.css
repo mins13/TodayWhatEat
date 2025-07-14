@@ -101,6 +101,10 @@
     background: #f9f9f9;
     border-radius: 4px;
     cursor: pointer;
+    white-space: nowrap;     /* 줄바꿈 방지 */
+    min-width: 40px;         /* 충분한 너비 설정 */
+    box-sizing: border-box;  /* 패딩 포함 계산 */
+    text-align: center;      /* 가운데 정렬 */
 }
 
 .active-filter {

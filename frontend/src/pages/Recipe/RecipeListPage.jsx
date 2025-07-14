@@ -1,18 +1,20 @@
-import React, { useState,useMemo} from "react";
+import React, { useEffect, useState } from "react";
 import RecipeSidebar from "../../components/Recipe/RecipeSidebar";
 import CustomSelect from "../../components/Recipe/CustomSelect";
 import searchIcon from "../../assets/Icon.jpg";
 import "./RecipeListPage.css";
 import { useNavigate } from "react-router-dom";
-
-
+import { fetchAllRecipes } from "../../api/recipeViewApi"; // ← 추가
 
 export default function RecipePage() {
+    const [recipes, setRecipes] = useState([]);
     const [searchInput, setSearchInput] = useState("");
     const [searchKeyword, setSearchKeyword] = useState("");
     const [sortOption, setSortOption] = useState("popular");
     const [currentPage, setCurrentPage] = useState(1);
     const navigate = useNavigate();
+
+
 
 
     const postsPerPage = 5;
@@ -23,35 +25,17 @@ export default function RecipePage() {
         { value: "view", label: "조회순", tooltip: "다른 사람들이 자주 본 레시피 순으로 정렬합니다", },
     ];
 
-
-
-    const recipeList = useMemo(() => [
-        {
-            id: 1,
-            title: "애호박 찌개",
-            ingredients: ["애호박", "마늘", "고추장", "대파", "양파"],
-            popularity: 88,
-            views: 142,
-        },
-        {
-            id: 2,
-            title: "콩나물 불고기",
-            ingredients: ["대패삼겹살", "콩나물", "양파", "마늘", "간장", "고추장", "미림"],
-            popularity: 97,
-            views: 211,
-        },
-        ...Array.from({ length: 20 }, (_, i) => ({
-            id: i + 3,
-            title: `레시피 ${i + 3}`,
-            ingredients: ["재료1", "재료2", "재료3"],
-            popularity: Math.floor(Math.random() * 50),
-            views: Math.floor(Math.random() * 300),
-        }))
-    ], []);
-
+    // ✅ 실제 API 호출
+    useEffect(() => {
+        const load = async () => {
+            const data = await fetchAllRecipes();
+            setRecipes(data);
+        };
+        load();
+    }, []);
 
     // 🔍 필터링 + 정렬
-    const filteredList = recipeList
+    const filteredList = recipes
         .map((r) => {
             const normalizedTitle = r.title.replace(/\s/g, "").toLowerCase();
             const normalizedKeyword = searchKeyword.replace(/\s/g, "").toLowerCase();
@@ -62,12 +46,10 @@ export default function RecipePage() {
         })
         .filter((r) => r.matchesSearch);
 
-
-
     if (sortOption === "popular") {
-        filteredList.sort((a, b) => b.popularity - a.popularity);
+        filteredList.sort((a, b) => (b.popularity || 0) - (a.popularity || 0));
     } else if (sortOption === "view") {
-        filteredList.sort((a, b) => b.views - a.views);
+        filteredList.sort((a, b) => (b.views || 0) - (a.views || 0));
     }
 
     // 페이지네이션
@@ -146,12 +128,13 @@ export default function RecipePage() {
                                 <div className="main-recipe-name">{recipe.title}</div>
                                 <div className="main-recipe-ingredients">
                                     재료:{" "}
-                                    {recipe.ingredients.map((item, index) => (
+                                    {recipe.ingredients && recipe.ingredients.slice(0, 5).map((item, index) => (
                                         <span key={index}>
                                             {item}
-                                            {index < recipe.ingredients.length - 1 ? ", " : " ……"}
+                                            {index < Math.min(recipe.ingredients.length, 5) - 1 ? ", " : ""}
                                         </span>
                                     ))}
+                                    {recipe.ingredients && recipe.ingredients.length > 5 && " …"}
                                 </div>
                             </div>
                         ))}
@@ -167,8 +150,8 @@ export default function RecipePage() {
                                 className={num === currentPage ? "active" : ""}
                                 onClick={() => setCurrentPage(num)}
                             >
-                {num}
-              </span>
+                                {num}
+                            </span>
                         ))}
                         <button onClick={() => setCurrentPage(endPage + 1)} disabled={endPage >= totalPages}>〉</button>
                         <button onClick={() => setCurrentPage(totalPages)} disabled={currentPage === totalPages}>》</button>

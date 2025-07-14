@@ -21,4 +21,5 @@ public class RecipeController {
         recipeService.saveRecipe(recipeDto);
         return ResponseEntity.ok("레시피 저장 완료!");
     }
+
 }

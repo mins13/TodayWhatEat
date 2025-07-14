@@ -1,6 +1,7 @@
 package com.project.todaywhateat.service;
 
 import com.project.todaywhateat.domain.FridgeIngredient;
+import com.project.todaywhateat.dto.response.FridgeIngredientDto;
 import com.project.todaywhateat.repository.FridgeIngredientRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -9,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -103,5 +105,12 @@ public class FridgeIngredientService {
         ingredient.setMemo(memo);
 
         return fridgeIngredientRepository.save(ingredient);
+    }
+
+    public List<FridgeIngredientDto> getIngredientsByUserId(String userId) {
+        List<FridgeIngredient> ingredients = fridgeIngredientRepository.findByUserId(userId);
+        return ingredients.stream()
+                .map(FridgeIngredientDto::fromEntity)
+                .collect(Collectors.toList());
     }
 }

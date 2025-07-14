@@ -38,6 +38,7 @@ public class UserController {
         Map<String, String> response = new HashMap<>();
         response.put("token", token);
         response.put("nickname", user.getNickname());
+        response.put("username", user.getUsername());
         return response;
     }
 

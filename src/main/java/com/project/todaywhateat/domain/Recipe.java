@@ -4,7 +4,9 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 
 @Entity
@@ -32,5 +34,5 @@ public class Recipe {
     private List<RecipeStep> steps = new ArrayList<>();
 
     @OneToMany(mappedBy = "recipe", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<RecipeTag> tags = new ArrayList<>();
+    private Set<RecipeTag> tags = new HashSet<>();
 }

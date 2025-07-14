@@ -18,7 +18,7 @@ public class RecipeTag {
 
     private String name;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "recipe_id")
     private Recipe recipe;
 }

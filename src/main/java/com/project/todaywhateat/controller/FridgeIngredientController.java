@@ -1,17 +1,18 @@
 package com.project.todaywhateat.controller;
 
 import com.project.todaywhateat.domain.FridgeIngredient;
+import com.project.todaywhateat.dto.response.FridgeIngredientDto;
 import com.project.todaywhateat.jwt.JwtUtil;
 import com.project.todaywhateat.service.FridgeIngredientService;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
-import jakarta.servlet.http.HttpServletRequest;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
+@CrossOrigin(origins = "http://localhost:5173")
 @RestController
 @RequestMapping("/fridge")
 @RequiredArgsConstructor
@@ -81,5 +82,10 @@ public class FridgeIngredientController {
 
         fridgeIngredientService.deleteIngredient(userId, ingredientName, expirationDate);
     }
+    @GetMapping("/user/{userId}")
+    public List<FridgeIngredientDto> getUserIngredients(@PathVariable String userId) {
+        return fridgeIngredientService.getIngredientsByUserId(userId);
+    }
+
 
 }

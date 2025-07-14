@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -53,7 +54,7 @@ public class RecipeService {
                         .recipe(recipe)
                         .build())
                 .collect(Collectors.toList());
-        recipe.setTags(tagList);
+        recipe.setTags((Set<RecipeTag>) tagList);
 
         recipeRepository.save(recipe);
     }
