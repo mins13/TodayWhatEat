@@ -69,8 +69,9 @@ export default function RecipeRecommendPage() {
     };
 
     const sortOptions = [
+        { value: "popular", label: "인기순", tooltip: "다른 사람들이 많이 본 인기 레시피 순서로 보여줍니다" },
+        { value: "view", label: "조회순", tooltip: "다른 사람들이 자주 본 레시피 순으로 정렬합니다", },
         { value: "match", label: "내 재료 우선", tooltip: "냉장고 속 재료가 많이 들어간 레시피 순서로 보여줍니다" },
-        { value: "popular", label: "인기순", tooltip: "다른 사람들이 많이 본 인기 레시피 순서로 보여줍니다" }
     ];
 
 
@@ -140,13 +141,7 @@ export default function RecipeRecommendPage() {
 
                     {/* 검색 */}
                     <div className="recommend-searchbar-top">
-                        <select className="recommend-category-select">
-                            <option>카테고리</option>
-                            <option>찌개</option>
-                            <option>볶음</option>
-                            <option>국물</option>
-                            <option>건강</option>
-                        </select>
+
                         <div className="recommend-searchbox">
                             <input
                                 type="text"

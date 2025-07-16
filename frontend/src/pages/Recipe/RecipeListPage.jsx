@@ -73,16 +73,7 @@ export default function RecipePage() {
 
                 <div className="right-panel">
                     <h2 className="main-recipe-title">전체 레시피</h2>
-
                     <div className="main-recipe-searchbar">
-                        <select className="main-recipe-select">
-                            <option>카테고리</option>
-                            <option>찌개</option>
-                            <option>볶음</option>
-                            <option>국물</option>
-                            <option>다이어트</option>
-                        </select>
-
                         <div className="main-recipe-searchbox">
                             <input
                                 type="text"
