@@ -26,4 +26,9 @@ public class RecipeViewController {
         return recipeViewService.getFilteredRecipesByFridge(userId, minCount);
     }
 
+    @GetMapping("/{id}")
+    public RecipeListResponseDto getRecipeById(@PathVariable Long id) {
+        return recipeViewService.getRecipeById(id);
+    }
+
 }

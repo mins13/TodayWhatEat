@@ -1,6 +1,7 @@
 package com.project.todaywhateat.service.view;
 
 import com.project.todaywhateat.domain.FridgeIngredient;
+import com.project.todaywhateat.domain.Recipe;
 import com.project.todaywhateat.dto.response.RecipeListResponseDto;
 import com.project.todaywhateat.repository.FridgeIngredientRepository;
 import com.project.todaywhateat.repository.RecipeRepository;
@@ -41,6 +42,13 @@ public class RecipeViewService {
                 .map(RecipeListResponseDto::fromEntity)
                 .collect(Collectors.toList());
     }
+
+    public RecipeListResponseDto getRecipeById(Long id) {
+        Recipe recipe = recipeRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("레시피가 존재하지 않습니다."));
+        return RecipeListResponseDto.fromEntity(recipe);
+    }
+
 
 
 
