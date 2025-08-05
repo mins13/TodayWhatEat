@@ -16,27 +16,36 @@ export default function RecipeDetailPage() {
     const [isAllDelete, setIsAllDelete] = useState(false);
     const [targetIndex, setTargetIndex] = useState(null);
 
+    console.log("✅ recipeId:", recipeId);
     // ✅ 레시피 불러오기
     useEffect(() => {
+        if (!recipeId) return;
+
         const fetchRecipe = async () => {
             try {
                 const res = await fetch(`http://localhost:8080/api/recipes/${recipeId}`);
                 const data = await res.json();
                 setRecipe(data);
+
                 setIngredients(data.ingredients.map(i => {
                     const [name, quantity] = i.split(" ");
                     return { name, quantity };
                 }));
+
                 setSeasonings(data.seasonings.map(s => {
                     const [name, quantity] = s.split(" ");
                     return { name, quantity };
                 }));
+
+                console.log("✅ 받아온 레시피 전체 데이터:", data);
             } catch (e) {
                 console.error("레시피 로딩 실패:", e);
             }
         };
+
         fetchRecipe();
     }, [recipeId]);
+
 
     const handleRemoveClick = (index) => {
         setTargetIndex(index);
@@ -54,7 +63,10 @@ export default function RecipeDetailPage() {
         setIsModalOpen(false);
     };
 
-    if (!recipe) return <div className="recipe-detail-loading">로딩 중...</div>;
+
+    if (!recipe || !recipe.ingredients || !recipe.seasonings) {
+        return <div>로딩 중...</div>;
+    }
 
     return (
         <div className="recipe-detail-container">

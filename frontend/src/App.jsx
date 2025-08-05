@@ -50,7 +50,7 @@ function App() {
                 <Route path="/community/:postId" element={<AppLayout isLoggedIn={isLoggedIn} setIsLoggedIn={setIsLoggedIn}><PostDetailPage /></AppLayout>} />
                 <Route path="/recipe" element={<AppLayout isLoggedIn={isLoggedIn} setIsLoggedIn={setIsLoggedIn}><RecipeListPage /></AppLayout>} />
                 <Route path="/recipe/recommend" element={<AppLayout isLoggedIn={isLoggedIn} setIsLoggedIn={setIsLoggedIn}><RecipeRecommendPage /></AppLayout>} />
-                <Route path="/recipe/:id" element={<AppLayout isLoggedIn={isLoggedIn} setIsLoggedIn={setIsLoggedIn}><RecipeDetailPage /></AppLayout>} />
+                <Route path="/recipe/:recipeId" element={<AppLayout isLoggedIn={isLoggedIn} setIsLoggedIn={setIsLoggedIn}><RecipeDetailPage /></AppLayout>} />
             </Routes>
         </Router>
     );
