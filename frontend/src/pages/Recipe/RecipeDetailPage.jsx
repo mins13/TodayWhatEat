@@ -25,19 +25,21 @@ export default function RecipeDetailPage() {
             try {
                 const res = await fetch(`http://localhost:8080/api/recipes/${recipeId}`);
                 const data = await res.json();
+
+                console.log("✅ 받아온 레시피 데이터:", data);
                 setRecipe(data);
 
-                setIngredients(data.ingredients.map(i => {
+                // 방어코드 추가
+                setIngredients((data.ingredients || []).map(i => {
                     const [name, quantity] = i.split(" ");
                     return { name, quantity };
                 }));
 
-                setSeasonings(data.seasonings.map(s => {
+                setSeasonings((data.seasonings || []).map(s => {
                     const [name, quantity] = s.split(" ");
                     return { name, quantity };
                 }));
 
-                console.log("✅ 받아온 레시피 전체 데이터:", data);
             } catch (e) {
                 console.error("레시피 로딩 실패:", e);
             }
@@ -45,6 +47,8 @@ export default function RecipeDetailPage() {
 
         fetchRecipe();
     }, [recipeId]);
+
+
 
 
     const handleRemoveClick = (index) => {
@@ -64,9 +68,10 @@ export default function RecipeDetailPage() {
     };
 
 
-    if (!recipe || !recipe.ingredients || !recipe.seasonings) {
+    if (!recipe) {
         return <div>로딩 중...</div>;
     }
+
 
     return (
         <div className="recipe-detail-container">
@@ -129,11 +134,12 @@ export default function RecipeDetailPage() {
                     <div className="recipe-detail-description">
                         <h4>레시피</h4>
                         <ol>
-                            {recipe.instructions.map((step, i) =>
+                            {recipe.instructions?.map((step, i) =>
                                 !showAll && i >= 3 ? null : <li key={i}>{step}</li>
                             )}
                         </ol>
-                        {recipe.instructions.length > 3 && (
+
+                        {recipe.instructions?.length > 3 && (
                             <button
                                 className="recipe-detail-show-more-btn"
                                 onClick={() => setShowAll(!showAll)}
