@@ -31,6 +31,7 @@ public class Recipe {
     private List<RecipeIngredient> ingredients = new ArrayList<>();
 
     @OneToMany(mappedBy = "recipe", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("stepOrder ASC")
     private List<RecipeStep> steps = new ArrayList<>();
 
     @OneToMany(mappedBy = "recipe", cascade = CascadeType.ALL, orphanRemoval = true)

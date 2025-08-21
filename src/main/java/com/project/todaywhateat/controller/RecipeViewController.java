@@ -1,5 +1,6 @@
 package com.project.todaywhateat.controller;
 
+import com.project.todaywhateat.dto.RecipeDto;
 import com.project.todaywhateat.dto.response.RecipeListResponseDto;
 import com.project.todaywhateat.service.view.RecipeViewService;
 import lombok.RequiredArgsConstructor;
@@ -26,9 +27,21 @@ public class RecipeViewController {
         return recipeViewService.getFilteredRecipesByFridge(userId, minCount);
     }
 
+
+
     @GetMapping("/{id}")
-    public RecipeListResponseDto getRecipeById(@PathVariable Long id) {
-        return recipeViewService.getRecipeById(id);
+    public RecipeDto getRecipeById(@PathVariable Long id) {
+        return recipeViewService.getRecipeDetail(id);  // ✅ 목록 DTO → 상세 DTO로 변경
     }
+
+    @GetMapping("/{id}/recommendations")
+    public List<RecipeListResponseDto> getRecommendations(
+            @PathVariable Long id,
+            @RequestParam(defaultValue = "3") int limit
+    ) {
+        return recipeViewService.getRecommendationsByTags(id, limit);
+    }
+
+
 
 }
