@@ -84,3 +84,53 @@
     padding-top: 1rem;
     border-top: 1px solid #eee;
 }
+
+.ingredient-item.used .ingredient-title {
+    text-decoration: line-through;
+    opacity: 0.6;
+}
+
+/* 사용완료 안내 문구 */
+.used-caption {
+    display: inline-block;
+    margin-top: 6px;
+    padding: 2px 8px;
+    border-radius: 8px;
+    font-size: 12px;
+    background: #ffe6e6;
+    color: #d9534f;
+}
+.ingredient-item.used .ingredient-title {
+    opacity: 0.6;
+}
+
+.used-caption {
+    margin-top: 6px;
+    font-size: 0.9rem;
+    color: #ff6b6b;
+}
+
+.just-used {
+    margin-top: 4px;
+    font-size: 0.9rem;
+    color: #555;
+}
+
+.ingredient-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.use-controls {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+}
+
+.use-controls input[type="number"] {
+    width: 90px;
+    padding: 6px 8px;
+    border: 1px solid #e4e4e4;
+    border-radius: 6px;
+}

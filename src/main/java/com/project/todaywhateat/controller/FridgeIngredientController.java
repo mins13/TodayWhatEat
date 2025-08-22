@@ -1,24 +1,29 @@
 package com.project.todaywhateat.controller;
 
 import com.project.todaywhateat.domain.FridgeIngredient;
+import com.project.todaywhateat.dto.request.ConsumeRequest;
 import com.project.todaywhateat.dto.response.FridgeIngredientDto;
 import com.project.todaywhateat.jwt.JwtUtil;
+import com.project.todaywhateat.service.FridgeConsumeService;
 import com.project.todaywhateat.service.FridgeIngredientService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 
-@CrossOrigin(origins = "http://localhost:5173")
+@CrossOrigin(origins = "http://localhost:5173", allowCredentials = "true")
 @RestController
 @RequestMapping("/fridge")
 @RequiredArgsConstructor
 public class FridgeIngredientController {
 
     private final FridgeIngredientService fridgeIngredientService;
+    private final FridgeConsumeService fridgeConsumeService;
     private final JwtUtil jwtUtil;
 
     @PostMapping("/save")
@@ -86,6 +91,62 @@ public class FridgeIngredientController {
     public List<FridgeIngredientDto> getUserIngredients(@PathVariable String userId) {
         return fridgeIngredientService.getIngredientsByUserId(userId);
     }
+
+    @PatchMapping("/consume")
+    public ResponseEntity<?> consume(@RequestBody ConsumeRequest req, HttpServletRequest request) {
+        String token = jwtUtil.resolveToken(request); // 쿠키 or Authorization 헤더
+        if (token == null || token.isBlank()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("message", "No token"));
+        }
+        String userId = jwtUtil.getUsername(token);
+
+        // 실제 차감 로직 호출
+        var result = fridgeConsumeService.consume(userId, req.items());
+
+        return ResponseEntity.ok(Map.of(
+                "ok", true,
+                "updated", result // 원한다면 최신 재고 목록/요약 반환
+        ));
+    }
+
+    @PatchMapping("/consume-one")
+    public ResponseEntity<?> consumeOne(@RequestBody Map<String, String> body,
+                                        HttpServletRequest request) {
+        String token = jwtUtil.resolveToken(request);
+        if (token == null || token.isBlank()) return ResponseEntity.status(401).body(Map.of("message","No token"));
+        String userId = jwtUtil.getUsername(token);
+
+        Long id = Long.parseLong(body.get("id"));
+        double amount = Double.parseDouble(body.getOrDefault("amount", "0"));
+        var dto = fridgeConsumeService.consumeOne(userId, id, amount);
+        return ResponseEntity.ok(dto);
+    }
+
+    @PatchMapping("/mark-used")
+    public ResponseEntity<?> markUsed(@RequestBody Map<String, String> body,
+                                      HttpServletRequest request) {
+        String token = jwtUtil.resolveToken(request);
+        if (token == null || token.isBlank()) return ResponseEntity.status(401).body(Map.of("message","No token"));
+        String userId = jwtUtil.getUsername(token);
+
+        Long id = Long.parseLong(body.get("id"));
+        var dto = fridgeConsumeService.markUsed(userId, id);
+        return ResponseEntity.ok(dto);
+    }
+
+    @PatchMapping("/unuse")
+    public ResponseEntity<?> unuse(@RequestBody Map<String, String> body,
+                                   HttpServletRequest request) {
+        String token = jwtUtil.resolveToken(request);
+        if (token == null || token.isBlank()) return ResponseEntity.status(401).body(Map.of("message","No token"));
+        String userId = jwtUtil.getUsername(token);
+
+        Long id = Long.parseLong(body.get("id"));
+        var dto = fridgeConsumeService.unuse(userId, id);
+        return ResponseEntity.ok(dto);
+    }
+
 
 
 }

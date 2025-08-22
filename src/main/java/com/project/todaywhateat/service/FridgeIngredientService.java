@@ -1,6 +1,7 @@
 package com.project.todaywhateat.service;
 
 import com.project.todaywhateat.domain.FridgeIngredient;
+import com.project.todaywhateat.dto.request.ConsumeItem;
 import com.project.todaywhateat.dto.response.FridgeIngredientDto;
 import com.project.todaywhateat.repository.FridgeIngredientRepository;
 import lombok.RequiredArgsConstructor;
@@ -112,5 +113,62 @@ public class FridgeIngredientService {
         return ingredients.stream()
                 .map(FridgeIngredientDto::fromEntity)
                 .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public void consume(String userId, List<ConsumeItem> items) {
+        for (ConsumeItem item : items) {
+            double need = item.getAmount();
+            if (need <= 0) continue;
+
+            // 유통기한 빠른 순으로 미사용 재고 찾기
+            List<FridgeIngredient> stocks =
+                    fridgeIngredientRepository
+                            .findByUserIdAndIngredientNameAndUsedFalseOrderByExpirationDateAsc(userId, item.getName());
+
+            for (FridgeIngredient stock : stocks) {
+                if (need <= 0) break;
+
+                double have = toNumber(stock.getQuantity()); // "30" -> 30.0
+                // 단위가 다르면(예: g vs 개) 여기서 매핑/변환 로직이 필요합니다. (현재는 동일 단위 가정)
+                if (have <= 0) {
+                    stock.setUsed(true);
+                    stock.setUsedAt(LocalDateTime.now());
+                    continue;
+                }
+
+                double consume = Math.min(have, need);
+                double remain = have - consume;
+
+                stock.setQuantity(numberToString(remain)); // 다시 문자열로 저장
+
+                if (remain <= 0.0000001) { // 거의 0
+                    stock.setUsed(true);
+                    stock.setUsedAt(LocalDateTime.now());
+                }
+
+                need -= consume;
+            }
+
+            // 남았는데 재고가 더 없으면: 그대로 넘어감(알림만)
+            if (need > 0) {
+                // 로그/알림: 재고 부족
+                // log.warn("재고 부족: {} {} 부족량={}", item.getName(), item.getUnit(), need);
+            }
+        }
+    }
+
+    private double toNumber(String s) {
+        try {
+            return Double.parseDouble(s == null ? "0" : s.trim());
+        } catch (Exception e) {
+            return 0;
+        }
+    }
+
+    private String numberToString(double v) {
+        // 정수면 5, 소수면 5.5 형태로 저장
+        if (Math.abs(v - Math.round(v)) < 1e-9) return String.valueOf((long) Math.round(v));
+        return String.valueOf(v);
     }
 }

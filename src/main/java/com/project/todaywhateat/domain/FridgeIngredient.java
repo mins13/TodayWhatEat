@@ -47,4 +47,19 @@ public class FridgeIngredient {
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
+
+    // ✅ 추가: 사용 상태 / 사용완료 시각
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false)
+    private Status status = Status.ACTIVE;   // ACTIVE, USED
+
+    @Column(name = "used", nullable = false)
+    private boolean used = false;
+
+    @Column(name = "used_at")
+    private LocalDateTime usedAt;
+
+    public enum Status { ACTIVE, USED }
+
+
 }

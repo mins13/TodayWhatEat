@@ -192,6 +192,38 @@ function Calendar() {
         setEditTarget(null);
     };
 
+    const fetchIngredients = async () => {
+        try {
+            const token = localStorage.getItem("token");
+            const res = await axios.get("/api/fridge/list", {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+
+            const fetchedEvents = res.data
+                // 백엔드가 usedUpAt(또는 remaining) 내려준다는 가정
+                .filter((item) => !item.usedUpAt && Number(item.quantity) > 0)
+                .map((item) => ({
+                    id: item.id,
+                    title: item.ingredientName,
+                    date: item.purchaseDate,
+                    count: Number(item.quantity),     // ← 항상 숫자로
+                    unit: item.unit,
+                    category: item.category,
+                    purchaseDate: item.purchaseDate,
+                    expireDate: item.expirationDate,
+                    color: item.color,
+                    memo: item.memo,
+                    status: item.status,
+                    usedAt: item.usedAt,
+                    usedUpAt: item.usedUpAt || null,  // 표시용
+                }));
+
+            setEvents(fetchedEvents);
+        } catch (err) {
+            console.error("재료 불러오기 실패:", err);
+        }
+    };
+
 
 
     return (
