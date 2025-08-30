@@ -36,4 +36,12 @@ public class Recipe {
 
     @OneToMany(mappedBy = "recipe", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<RecipeTag> tags = new HashSet<>();
+
+    @Column(name = "likes_count", nullable = false)
+    private long likesCount;
+
+    @Column(name = "view_count", nullable = false)
+    private long viewCount;
+
+
 }

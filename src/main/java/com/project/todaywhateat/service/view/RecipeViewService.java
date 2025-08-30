@@ -2,9 +2,9 @@ package com.project.todaywhateat.service.view;
 
 import com.project.todaywhateat.domain.FridgeIngredient;
 import com.project.todaywhateat.domain.Recipe;
+import com.project.todaywhateat.domain.RecipeStep;
 import com.project.todaywhateat.domain.RecipeTag;
 import com.project.todaywhateat.dto.RecipeDto;
-import com.project.todaywhateat.dto.RecipeMapper;
 import com.project.todaywhateat.dto.response.RecipeListResponseDto;
 import com.project.todaywhateat.repository.FridgeIngredientRepository;
 import com.project.todaywhateat.repository.RecipeRepository;
@@ -14,10 +14,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 
@@ -61,13 +58,47 @@ public class RecipeViewService {
     }
 
     public RecipeDto getRecipeDetail(Long id) {
-        Recipe recipe = recipeRepository.findByIdWithIngredients(id)
-                .orElseThrow(() -> new IllegalArgumentException("레시피가 존재하지 않습니다."));
+        // 필요하면 findByIdWithIngredients(id)로 바꿔도 됨. (open-in-view가 켜져 있으니 단순 findById도 동작)
+        Recipe r = recipeRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("레시피가 없습니다: " + id));
 
-        var steps = recipeStepRepository.findByRecipeIdOrderByStep(id);
-        var tags  = recipeTagRepository.findByRecipeId(id); // or recipe.getTags() (LAZY)
+        RecipeDto dto = new RecipeDto();
+        dto.setId(r.getId());
+        dto.setTitle(r.getTitle());
+        dto.setImage(r.getImage());
 
-        return RecipeMapper.toDto(recipe, steps, tags);
+        // ✅ 여기 중요: 카운트 채우기
+        dto.setViewCount(r.getViewCount());
+        dto.setLikesCount(r.getLikesCount());
+
+        // 재료
+        dto.setIngredients(
+                r.getIngredients().stream()
+                        .map(ing -> {
+                            RecipeDto.IngredientDto di = new RecipeDto.IngredientDto();
+                            di.setName(ing.getName());
+                            di.setAmount(ing.getAmount());
+                            return di;
+                        })
+                        .toList()
+        );
+
+        // 단계(정렬 보장)
+        dto.setSteps(
+                r.getSteps().stream()
+                        .sorted(Comparator.comparingInt(RecipeStep::getStepOrder))
+                        .map(RecipeStep::getDescription)
+                        .toList()
+        );
+
+        // 태그
+        dto.setTags(
+                r.getTags().stream()
+                        .map(t -> t.getName())
+                        .toList()
+        );
+
+        return dto;
     }
 
     public List<RecipeListResponseDto> getRecommendedByTags(Long id, int limit) {
@@ -151,6 +182,8 @@ public class RecipeViewService {
                 .map(RecipeListResponseDto::fromEntity)
                 .collect(Collectors.toList());
     }
+
+
 
 
 

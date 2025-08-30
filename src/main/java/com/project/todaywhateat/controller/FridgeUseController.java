@@ -44,6 +44,8 @@ public class FridgeUseController {
         double amount = Double.parseDouble(String.valueOf(body.get("amount")));
         return ResponseEntity.ok(consumeService.restoreOne(userId, id, amount));
     }
+    
+
 
 
 }

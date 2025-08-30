@@ -94,21 +94,21 @@ public class FridgeIngredientController {
 
     @PatchMapping("/consume")
     public ResponseEntity<?> consume(@RequestBody ConsumeRequest req, HttpServletRequest request) {
-        String token = jwtUtil.resolveToken(request); // 쿠키 or Authorization 헤더
+        String token = jwtUtil.resolveToken(request);
         if (token == null || token.isBlank()) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("message", "No token"));
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message","No token"));
         }
         String userId = jwtUtil.getUsername(token);
 
-        // 실제 차감 로직 호출
-        var result = fridgeConsumeService.consume(userId, req.items());
-
-        return ResponseEntity.ok(Map.of(
-                "ok", true,
-                "updated", result // 원한다면 최신 재고 목록/요약 반환
-        ));
+        try {
+            var result = fridgeConsumeService.consume(userId, req.items());
+            return ResponseEntity.ok(Map.of("ok", true, "updated", result));
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            return ResponseEntity.badRequest().body(Map.of("ok", false, "message", e.getMessage()));
+        }
     }
+
+
 
 
 
@@ -123,6 +123,7 @@ public class FridgeIngredientController {
         var dto = fridgeConsumeService.markUsed(userId, id);
         return ResponseEntity.ok(dto);
     }
+
 
 
 

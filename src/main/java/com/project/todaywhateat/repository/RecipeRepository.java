@@ -1,12 +1,14 @@
 package com.project.todaywhateat.repository;
 
 import com.project.todaywhateat.domain.Recipe;
+import jakarta.transaction.Transactional;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-import org.springframework.data.domain.Pageable;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -39,5 +41,24 @@ public interface RecipeRepository extends JpaRepository<Recipe, Long> {
     List<Recipe> findSimilarByTags(@Param("id") Long id,
                                    @Param("names") Set<String> names,
                                    Pageable pageable);
+
+
+    @Transactional
+    @Modifying
+    @Query("update Recipe r set r.likesCount = r.likesCount + :delta where r.id = :id")
+    int addLikes(@Param("id") Long recipeId, @Param("delta") int delta);
+
+    // 👀 조회수 +1
+    @Transactional
+    @Modifying
+    @Query("update Recipe r set r.viewCount = r.viewCount + 1 where r.id = :id")
+    int incViews(@Param("id") Long recipeId);
+
+    // 🔀 정렬용
+    @Query("select r from Recipe r order by r.likesCount desc, r.id desc")
+    List<Recipe> findAllOrderByPopularity();
+
+    @Query("select r from Recipe r order by r.viewCount desc, r.id desc")
+    List<Recipe> findAllOrderByViews();
 
 }

@@ -18,6 +18,9 @@ public class RecipeListResponseDto {
     private String imageUrl;
     private List<String> ingredients;
     private List<String> tags;
+    // ✅ 추가
+    private long viewCount;
+    private long likesCount;
 
     public static RecipeListResponseDto fromEntity(Recipe recipe) {
         return RecipeListResponseDto.builder()
@@ -36,7 +39,12 @@ public class RecipeListResponseDto {
                         .distinct()
                         .collect(Collectors.toList())
                         : new ArrayList<>()
+
+
                 )
+                .viewCount(recipe.getViewCount())
+                .likesCount(recipe.getLikesCount())
+
                 .build();
 
     }

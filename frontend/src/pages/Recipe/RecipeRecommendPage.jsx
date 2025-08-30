@@ -5,6 +5,8 @@ import "./RecipeRecommendPage.css";
 import CustomSelect from "../../components/Recipe/CustomSelect";
 import { useNavigate } from "react-router-dom";
 import { fetchAllRecipes, fetchFridgeIngredients, fetchFilteredRecipes } from "../../api/recipeViewApi"; // 🔁 연동 추가
+import { fetchRecipesSorted } from "../../api/recipeEngageApi";
+
 
 
 export default function RecipeRecommendPage() {
@@ -43,7 +45,9 @@ export default function RecipeRecommendPage() {
                 setRecipes(recipeData);
 
                 if (Array.isArray(fridgeData)) {
-                    const ingredients = fridgeData.map(f => f.ingredientName);
+                    const ingredients = fridgeData
+                        .filter(f => Number(f.quantity) > 0)   // 수량 0 제외
+                        .map(f => f.ingredientName);
                     setFridgeIngredients(ingredients);
                 } else {
                     console.warn("❗ 냉장고 데이터가 배열이 아닙니다:", fridgeData);
@@ -56,6 +60,20 @@ export default function RecipeRecommendPage() {
 
         load();
     }, []);
+    // 정렬 옵션이 바뀔 때마다 호출
+    useEffect(() => {
+        (async () => {
+            try {
+                const list = await fetchRecipesSorted(sortOption); // "popular" | "view" | default
+                setRecipes(list);
+                setCurrentPage(1);
+            } catch (e) {
+                console.error(e);
+                alert("레시피 목록을 불러오지 못했습니다.");
+            }
+        })();
+    }, [sortOption]);
+
 
     const postsPerPage = 5;
     const pageLimit = 5;

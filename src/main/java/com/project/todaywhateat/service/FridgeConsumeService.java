@@ -28,32 +28,52 @@ public class FridgeConsumeService {
      */
     @Transactional
     public List<FridgeIngredient> consume(String userId, List<ConsumeItem> items) {
-        // 사용자 재고 전체 로딩
         List<FridgeIngredient> stock = repo.findByUserId(userId);
 
         for (ConsumeItem req : items) {
-            String name = req.getName() == null ? "" : req.getName().trim();
-            String unit = req.getUnit() == null ? "" : req.getUnit().trim();
+            String name = norm(req.getName());   // 공백/대소문자 정규화
+            String unit = norm(req.getUnit());
             double need = req.getAmount();
-
             if (name.isEmpty() || need <= 0) continue;
 
-            // 같은 이름(+단위)의 재고를 유통기한(FIFO) 오름차순
+            // 이름(+단위) 매칭 (FIFO)
             List<FridgeIngredient> batches = stock.stream()
-                    .filter(fi -> name.equals(fi.getIngredientName()))
-                    .filter(fi -> unit.isEmpty() || unit.equals(fi.getUnit()))
+                    .filter(fi -> norm(fi.getIngredientName()).equals(name))
+                    .filter(fi -> unit.isEmpty() || norm(fi.getUnit()).equals(unit))
                     .sorted(Comparator.comparing(
                             FridgeIngredient::getExpirationDate,
                             Comparator.nullsLast(Comparator.naturalOrder())))
                     .toList();
 
+            // 단위 무시 재시도
+            if (batches.isEmpty() && !unit.isEmpty()) {
+                batches = stock.stream()
+                        .filter(fi -> norm(fi.getIngredientName()).equals(name))
+                        .sorted(Comparator.comparing(
+                                FridgeIngredient::getExpirationDate,
+                                Comparator.nullsLast(Comparator.naturalOrder())))
+                        .toList();
+            }
+
+            // 매칭이 없으면 에러 발생 (없음으로 처리)
+            if (batches.isEmpty()) {
+                throw new IllegalArgumentException("냉장고에 해당 재료가 없습니다: " + req.getName());
+            }
+
+            double needBefore = need;
+
             for (FridgeIngredient fi : batches) {
-                // 이미 사용완료면 스킵
-                if (fi.getStatus() == FridgeIngredient.Status.USED) continue;
-
                 double have = parseQty(fi.getQuantity());
-                if (have <= 0) continue;
+                if (have <= 0) continue; // 0은 건너뜀
 
+                // ✅ 수량 > 0 인데 상태가 USED면 복구 후 진행
+                if (fi.getStatus() == FridgeIngredient.Status.USED) {
+                    fi.setStatus(FridgeIngredient.Status.ACTIVE);
+                    fi.setUsedAt(null);
+                    repo.save(fi);
+                }
+
+                // 여기부터 정상 차감
                 double use = Math.min(have, need);
                 double remain = round2(have - use);
 
@@ -69,12 +89,30 @@ public class FridgeConsumeService {
                 need = round2(need - use);
                 if (need <= 1e-9) break;
             }
-            // need > 0 이면 재고 부족 → 필요시 로그/알림
-        }
 
-        // 최신 상태 반환
+
+            // 차감이 안 된 경우(수량 부족 등) 에러
+            if (Math.abs(needBefore - need) < 1e-9) {
+                if (needBefore == 0) {
+                    throw new IllegalArgumentException("냉장고에 해당 재료가 없습니다: " + req.getName());
+                } else {
+                    throw new IllegalStateException("재고 수량이 부족합니다: " + req.getName());
+                }
+            }
+        }
         return repo.findByUserId(userId);
     }
+
+
+
+
+    // 공백 제거 + 소문자화
+    private static String norm(String s) {
+        if (s == null) return "";
+        return s.replaceAll("\\s+", "").toLowerCase();
+    }
+
+
 
     /* ---------- 단건(리스트에서 “사용 n개” / “사용완료” / “사용취소”) ---------- */
 
@@ -129,6 +167,8 @@ public class FridgeConsumeService {
             return new ConsumeOneResult(s.getId(), s.getIngredientName(),
                     used, remain, s.getUnit(), "ACTIVE");
         }
+
+
     }
 
     @Transactional
@@ -182,6 +222,8 @@ public class FridgeConsumeService {
         return String.valueOf(v);
     }
     private static double round2(double v) { return Math.round(v * 100.0) / 100.0; }
+
+
 }
 
 

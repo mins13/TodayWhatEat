@@ -97,6 +97,30 @@ function Calendar() {
     useEffect(() => {
             fetchIngredients();
          }, [fetchIngredients]);
+    useEffect(() => {
+        // 같은 탭용
+        const onFridgeDirty = () => fetchIngredients();
+        window.addEventListener("fridge-dirty", onFridgeDirty);
+
+        // 다른 탭/창에서 바뀐 경우
+        const onStorage = (e) => {
+            if (e.key === "fridgeDirty") fetchIngredients();
+        };
+        window.addEventListener("storage", onStorage);
+
+        // 탭 전환 후 다시 볼 때도 동기화
+        const onVisible = () => {
+            if (document.visibilityState === "visible") fetchIngredients();
+        };
+        document.addEventListener("visibilitychange", onVisible);
+
+        return () => {
+            window.removeEventListener("fridge-dirty", onFridgeDirty);
+            window.removeEventListener("storage", onStorage);
+            document.removeEventListener("visibilitychange", onVisible);
+        };
+    }, [fetchIngredients]);
+
 
     const handleDelete = async (target) => {
         try {

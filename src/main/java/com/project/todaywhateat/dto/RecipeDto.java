@@ -17,6 +17,10 @@ public class RecipeDto {
     private List<String> steps;
     private List<String> tags;
 
+    // ✅ 조회수 & 좋아요 카운트 추가
+    private long viewCount;
+    private long likesCount;
+
     @Getter
     @Setter
     @NoArgsConstructor
