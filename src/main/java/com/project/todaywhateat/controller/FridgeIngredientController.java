@@ -110,18 +110,7 @@ public class FridgeIngredientController {
         ));
     }
 
-    @PatchMapping("/consume-one")
-    public ResponseEntity<?> consumeOne(@RequestBody Map<String, String> body,
-                                        HttpServletRequest request) {
-        String token = jwtUtil.resolveToken(request);
-        if (token == null || token.isBlank()) return ResponseEntity.status(401).body(Map.of("message","No token"));
-        String userId = jwtUtil.getUsername(token);
 
-        Long id = Long.parseLong(body.get("id"));
-        double amount = Double.parseDouble(body.getOrDefault("amount", "0"));
-        var dto = fridgeConsumeService.consumeOne(userId, id, amount);
-        return ResponseEntity.ok(dto);
-    }
 
     @PatchMapping("/mark-used")
     public ResponseEntity<?> markUsed(@RequestBody Map<String, String> body,
@@ -135,17 +124,7 @@ public class FridgeIngredientController {
         return ResponseEntity.ok(dto);
     }
 
-    @PatchMapping("/unuse")
-    public ResponseEntity<?> unuse(@RequestBody Map<String, String> body,
-                                   HttpServletRequest request) {
-        String token = jwtUtil.resolveToken(request);
-        if (token == null || token.isBlank()) return ResponseEntity.status(401).body(Map.of("message","No token"));
-        String userId = jwtUtil.getUsername(token);
 
-        Long id = Long.parseLong(body.get("id"));
-        var dto = fridgeConsumeService.unuse(userId, id);
-        return ResponseEntity.ok(dto);
-    }
 
 
 

@@ -90,17 +90,29 @@ public class FridgeConsumeService {
 
     @Transactional
     public ConsumeOneResult consumeOne(String userId, Long id, double amount) {
-        var s = repo.findById(id).orElseThrow();
-        if (!Objects.equals(s.getUserId(), userId)) throw new IllegalArgumentException("권한 없음");
-        if (amount <= 0)
-            return new ConsumeOneResult(s.getId(), s.getIngredientName(), 0, parseQty(s.getQuantity()), s.getUnit(), s.getStatus().name());
-
-        if (s.getStatus() != FridgeIngredient.Status.ACTIVE) {
-            // 이미 사용완료면 차감 불가
-            return new ConsumeOneResult(s.getId(), s.getIngredientName(), 0, parseQty(s.getQuantity()), s.getUnit(), s.getStatus().name());
+        FridgeIngredient s = repo.findById(id).orElseThrow();
+        if (!Objects.equals(s.getUserId(), userId)) {
+            throw new IllegalArgumentException("권한 없음");
+        }
+        if (amount <= 0) {
+            return new ConsumeOneResult(s.getId(), s.getIngredientName(),
+                    0, parseQty(s.getQuantity()), s.getUnit(), s.getStatus().name());
         }
 
         double have = parseQty(s.getQuantity());
+
+        // ✅ 자동 재활성: 수량은 있는데 USED면 ACTIVE로 되돌리고 계속 진행
+        if (have > 0 && s.getStatus() == FridgeIngredient.Status.USED) {
+            s.setStatus(FridgeIngredient.Status.ACTIVE);
+            s.setUsedAt(null);
+            repo.save(s);
+        }
+
+        // ❌ 기존의 "ACTIVE가 아니면 바로 리턴"은 제거/변경
+        // if (s.getStatus() != FridgeIngredient.Status.ACTIVE) {
+        //     return new ConsumeOneResult(...);  ← 이 early-return 막기
+        // }
+
         double used = Math.min(have, amount);
         double remain = round2(have - used);
 
@@ -109,49 +121,69 @@ public class FridgeConsumeService {
             s.setStatus(FridgeIngredient.Status.USED);
             s.setUsedAt(LocalDateTime.now());
             repo.save(s);
-            return new ConsumeOneResult(s.getId(), s.getIngredientName(), used, 0, s.getUnit(), "USED");
+            return new ConsumeOneResult(s.getId(), s.getIngredientName(),
+                    used, 0, s.getUnit(), "USED");
         } else {
             s.setQuantity(doubleToStr(remain));
             repo.save(s);
-            return new ConsumeOneResult(s.getId(), s.getIngredientName(), used, remain, s.getUnit(), "ACTIVE");
+            return new ConsumeOneResult(s.getId(), s.getIngredientName(),
+                    used, remain, s.getUnit(), "ACTIVE");
         }
     }
 
     @Transactional
     public ConsumeOneResult markUsed(String userId, Long id) {
-        var s = repo.findById(id).orElseThrow();
+        FridgeIngredient s = repo.findById(id).orElseThrow();
         if (!Objects.equals(s.getUserId(), userId)) throw new IllegalArgumentException("권한 없음");
-        if (s.getStatus() == FridgeIngredient.Status.USED)
-            return new ConsumeOneResult(s.getId(), s.getIngredientName(), 0, parseQty(s.getQuantity()), s.getUnit(), "USED");
 
+        // 핵심: 수량도 0으로
+        s.setQuantity("0");
         s.setStatus(FridgeIngredient.Status.USED);
         s.setUsedAt(LocalDateTime.now());
         repo.save(s);
-        return new ConsumeOneResult(s.getId(), s.getIngredientName(), 0, parseQty(s.getQuantity()), s.getUnit(), "USED");
+
+        return new ConsumeOneResult(s.getId(), s.getIngredientName(),
+                0, 0, s.getUnit(), "USED");
     }
 
+    // ✅ USED여도 복구 가능하도록 허용
+    // 추가된 부분만
     @Transactional
-    public ConsumeOneResult unuse(String userId, Long id) {
-        var s = repo.findById(id).orElseThrow();
+    public ConsumeOneResult restoreOne(String userId, Long id, double amount) {
+        FridgeIngredient s = repo.findById(id).orElseThrow();
         if (!Objects.equals(s.getUserId(), userId)) throw new IllegalArgumentException("권한 없음");
+        if (amount <= 0) {
+            return new ConsumeOneResult(s.getId(), s.getIngredientName(),
+                    0, parseQty(s.getQuantity()), s.getUnit(), s.getStatus().name());
+        }
 
+        double cur = parseQty(s.getQuantity());
+        double next = round2(cur + amount);
+
+        s.setQuantity(doubleToStr(next));
+        // 복구하면 언제나 ACTIVE
         s.setStatus(FridgeIngredient.Status.ACTIVE);
         s.setUsedAt(null);
         repo.save(s);
-        return new ConsumeOneResult(s.getId(), s.getIngredientName(), 0, parseQty(s.getQuantity()), s.getUnit(), "ACTIVE");
+
+        return new ConsumeOneResult(s.getId(), s.getIngredientName(),
+                0, next, s.getUnit(), "ACTIVE");
     }
 
-    /* ------------------ 유틸 ------------------ */
+
+
+    // -------- utils --------
     private static double parseQty(String q) {
         try { return q==null ? 0d : Double.parseDouble(q.trim()); }
         catch (Exception e) { return 0d; }
     }
-
     private static String doubleToStr(double v) {
-        // 정수면 "3", 아니면 "3.5"
         if (Math.abs(v - Math.rint(v)) < 1e-9) return String.valueOf((long)Math.rint(v));
         return String.valueOf(v);
     }
-
     private static double round2(double v) { return Math.round(v * 100.0) / 100.0; }
 }
+
+
+
+
