@@ -5,6 +5,7 @@ import searchIcon from "../../assets/Icon.jpg";
 import "./RecipeListPage.css";
 import { useNavigate } from "react-router-dom";
 import { fetchAllRecipes } from "../../api/recipeViewApi"; // ← 추가
+import { getSorter } from "../../utils/sorters";
 
 export default function RecipePage() {
     const [recipes, setRecipes] = useState([]);
@@ -13,29 +14,47 @@ export default function RecipePage() {
     const [sortOption, setSortOption] = useState("popular");
     const [currentPage, setCurrentPage] = useState(1);
     const navigate = useNavigate();
-
-
-
-
     const postsPerPage = 5;
     const pageLimit = 5;
 
     const sortOptions = [
         { value: "popular", label: "인기순", tooltip: "다른 사람들이 많이 본 인기 레시피 순서로 보여줍니다",},
-        { value: "view", label: "조회순", tooltip: "다른 사람들이 자주 본 레시피 순으로 정렬합니다", },
+        { value: "views", label: "조회순", tooltip: "다른 사람들이 자주 본 레시피 순으로 정렬합니다", },
     ];
+
+    // 로딩 시 정규화 (두 파일 공통 패턴)
+    const normalizeList = (list) =>
+        list.map(r => ({
+            ...r,
+            likes:  Number(
+                r.likes ??
+                r.likeCount ??
+                r.likesCount ??       // ✅ 추가
+                r.like_count ??       // ✅ 추가(스네이크 케이스 대비)
+                r.popularity ?? 0
+            ),
+            views: Number(
+                r.views ??
+                r.viewCount ??
+                r.view_count ?? 0
+            ),
+            title: r.title ?? "",
+            tags: r.tags ?? [],
+            ingredients: r.ingredients ?? [],
+        }));
+
 
     // ✅ 실제 API 호출
     useEffect(() => {
         const load = async () => {
             const data = await fetchAllRecipes();
-            setRecipes(data);
+            setRecipes(normalizeList(data));
         };
         load();
     }, []);
 
     // 🔍 필터링 + 정렬
-    const filteredList = recipes
+    let filteredList = recipes
         .map((r) => {
             const normalizedTitle = r.title.replace(/\s/g, "").toLowerCase();
             const normalizedKeyword = searchKeyword.replace(/\s/g, "").toLowerCase();
@@ -46,11 +65,7 @@ export default function RecipePage() {
         })
         .filter((r) => r.matchesSearch);
 
-    if (sortOption === "popular") {
-        filteredList.sort((a, b) => (b.popularity || 0) - (a.popularity || 0));
-    } else if (sortOption === "view") {
-        filteredList.sort((a, b) => (b.views || 0) - (a.views || 0));
-    }
+    filteredList = [...filteredList].sort(getSorter(sortOption));
 
     // 페이지네이션
     const totalPages = Math.ceil(filteredList.length / postsPerPage);

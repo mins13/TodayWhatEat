@@ -6,6 +6,7 @@ import CustomSelect from "../../components/Recipe/CustomSelect";
 import { useNavigate } from "react-router-dom";
 import { fetchAllRecipes, fetchFridgeIngredients, fetchFilteredRecipes } from "../../api/recipeViewApi"; // 🔁 연동 추가
 import { fetchRecipesSorted } from "../../api/recipeEngageApi";
+import { getSorter } from "../../utils/sorters";
 
 
 
@@ -42,7 +43,7 @@ export default function RecipeRecommendPage() {
                 const recipeData = await fetchAllRecipes();
                 const fridgeData = await fetchFridgeIngredients(userId);
 
-                setRecipes(recipeData);
+                setRecipes(normalizeList(recipeData));
 
                 if (Array.isArray(fridgeData)) {
                     const ingredients = fridgeData
@@ -61,18 +62,7 @@ export default function RecipeRecommendPage() {
         load();
     }, []);
     // 정렬 옵션이 바뀔 때마다 호출
-    useEffect(() => {
-        (async () => {
-            try {
-                const list = await fetchRecipesSorted(sortOption); // "popular" | "view" | default
-                setRecipes(list);
-                setCurrentPage(1);
-            } catch (e) {
-                console.error(e);
-                alert("레시피 목록을 불러오지 못했습니다.");
-            }
-        })();
-    }, [sortOption]);
+
 
 
     const postsPerPage = 5;
@@ -88,9 +78,31 @@ export default function RecipeRecommendPage() {
 
     const sortOptions = [
         { value: "popular", label: "인기순", tooltip: "다른 사람들이 많이 본 인기 레시피 순서로 보여줍니다" },
-        { value: "view", label: "조회순", tooltip: "다른 사람들이 자주 본 레시피 순으로 정렬합니다", },
+        { value: "views", label: "조회순", tooltip: "다른 사람들이 자주 본 레시피 순으로 정렬합니다", },
         { value: "match", label: "내 재료 우선", tooltip: "냉장고 속 재료가 많이 들어간 레시피 순서로 보여줍니다" },
     ];
+
+    // 로딩 시 정규화 (두 파일 공통 패턴)
+    const normalizeList = (list) =>
+        list.map(r => ({
+            ...r,
+            likes:  Number(
+                r.likes ??
+                r.likeCount ??
+                r.likesCount ??       // ✅ 추가
+                r.like_count ??       // ✅ 추가(스네이크 케이스 대비)
+                r.popularity ?? 0
+            ),
+            views: Number(
+                     r.views ??
+                     r.viewCount ??
+                     r.view_count ?? 0
+                   ),
+            title: r.title ?? "",
+            tags: r.tags ?? [],
+            ingredients: r.ingredients ?? [],
+        }));
+
 
 
 
@@ -116,9 +128,12 @@ export default function RecipeRecommendPage() {
         });
 
     if (sortOption === "match") {
-        filtered.sort((a, b) => b.matchCount - a.matchCount);
-    } else if (sortOption === "popular") {
-        filtered.sort((a, b) => (b.popularity || 0) - (a.popularity || 0));
+        filtered = [...filtered].sort((a, b) => {
+            if (b.matchCount !== a.matchCount) return b.matchCount - a.matchCount;
+            return getSorter("popular")(a, b); // 동률이면 인기순 보조정렬
+        });
+    } else  {
+        filtered = [...filtered].sort(getSorter(sortOption));
     }
 
     const recommended = recipes
@@ -130,13 +145,13 @@ export default function RecipeRecommendPage() {
             const keywordMatch = r.title.includes(searchKeyword);
             const countMatch = selectedCount ? r.matchCount >= selectedCount : true;
             const tagMatch = selectedTags.length > 0
-                ? selectedTags.some(tag => (r.tags || []).includes(tag))
+                ? selectedTags.some(tag => (r.tags || []).includes(tag.replace("#","")))
                 : true;
 
             return !(keywordMatch && countMatch && tagMatch);
         })
         .filter(r => r.matchCount >= 1)
-        .sort((a, b) => (b.popularity || 0) - (a.popularity || 0))
+        .sort(getSorter("popular"))
         .slice(0, 3);
 
     const totalPages = Math.ceil(filtered.length / postsPerPage);
