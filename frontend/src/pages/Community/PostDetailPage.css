@@ -180,3 +180,42 @@
 .back-button:hover {
     background-color: #d0d0d0;
 }
+/* 액션 영역은 오른쪽 정렬 + 가볍게 간격 */
+.comment-actions {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* 버튼을 '텍스트 링크'처럼 보이게 */
+.comment-btn {
+    appearance: none;
+    background: none;
+    border: none;
+    padding: 0;
+    margin: 0;
+    font: inherit;          /* 현재 글꼴/크기 따라감 */
+    font-size: 0.85rem;
+    color: #666;
+    cursor: pointer;
+    line-height: 1;
+}
+
+.comment-btn:hover,
+.comment-btn:focus-visible {
+    text-decoration: underline;
+    color: #333;
+}
+
+/* 위험(삭제) 색상 */
+.comment-btn.danger {
+    color: #c72b2b;
+}
+.comment-btn.danger:hover,
+.comment-btn.danger:focus-visible {
+    color: #a71e1e;
+    text-decoration: underline;
+}
+
+

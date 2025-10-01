@@ -1,17 +1,26 @@
 package com.project.todaywhateat.dto.Community;
 
-import com.project.todaywhateat.domain.Community.Post;
-
-import java.time.LocalDateTime;
-
 public record PostDetailDto(
-        Long id, String board, String title, String author, String content,
-        int likes, int views, LocalDateTime createdAt, LocalDateTime updatedAt
-){
-    public static PostDetailDto from(Post p){
+        Long id,
+        String title,
+        String content,
+        String authorName,
+        long likesCount,
+        long viewsCount,
+        Boolean liked    // ← 로그인 사용자의 좋아요 여부 (로그아웃이면 null)
+) {
+    public static PostDetailDto from(com.project.todaywhateat.domain.Community.Post p) {
+        return from(p, null);
+    }
+    public static PostDetailDto from(com.project.todaywhateat.domain.Community.Post p, Boolean liked) {
         return new PostDetailDto(
-                p.getId(), p.getBoard().getCode(), p.getTitle(), p.getAuthorName(), p.getContent(),
-                p.getLikesCount(), p.getViewsCount(), p.getCreatedAt(), p.getUpdatedAt()
+                p.getId(),
+                p.getTitle(),
+                p.getContent(),
+                p.getAuthorName(),
+                p.getLikesCount(),
+                p.getViewsCount(),
+                liked
         );
     }
 }

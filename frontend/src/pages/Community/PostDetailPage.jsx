@@ -10,7 +10,10 @@ import {
     togglePostLike,
     fetchComments,
     addComment,
+    updateComment,
+    deleteComment,
 } from "../../api/communityApi";
+
 
 const BOARD_LABEL_MAP = {
     free: "자유 게시판",
@@ -40,6 +43,8 @@ export default function PostDetailPage() {
     // 좋아요
     const [liked, setLiked] = useState(false);
     const [likes, setLikes] = useState(0);
+    const [liking, setLiking] = useState(false);
+
 
     // 조회수
     const [views, setViews] = useState(0);
@@ -84,9 +89,12 @@ export default function PostDetailPage() {
                         id: c.id,
                         author: c.authorName ?? "익명",
                         content: c.content ?? "",
+                        mine: !!c.mine,              // ✅ 서버에서 온 소유 여부
                         isEditing: false,
+                        editValue: c.content ?? "",
                     }))
                 );
+
                 setCommentTotal(total ?? 0);
                 setCommentPage(1);
             } catch (e) {
@@ -111,7 +119,9 @@ export default function PostDetailPage() {
                     id: c.id,
                     author: c.authorName ?? "익명",
                     content: c.content ?? "",
+                    mine: !!c.mine,
                     isEditing: false,
+                    editValue: c.content ?? "",
                 })),
             ]);
             setCommentPage(nextPage);
@@ -120,12 +130,52 @@ export default function PostDetailPage() {
             alert("댓글 더보기에 실패했습니다.");
         }
     };
+    const startEdit = (id) => {
+        setComments(prev => prev.map(c => c.id === id ? { ...c, isEditing: true, editValue: c.content } : c));
+    };
+
+    const cancelEdit = (id) => {
+        setComments(prev => prev.map(c => c.id === id ? { ...c, isEditing: false, editValue: c.content } : c));
+    };
+
+    const saveEdit = async (id) => {
+        const target = comments.find(c => c.id === id);
+        const content = (target?.editValue || "").trim();
+        if (!content) return alert("내용을 입력하세요.");
+        try {
+            await updateComment(board, postId, id, { content });
+            setComments(prev => prev.map(c =>
+                c.id === id ? { ...c, content, isEditing: false } : c
+            ));
+        } catch (e) {
+            alert("댓글 수정에 실패했습니다."); console.error(e);
+        }
+    };
+
+    const removeComment = async (id) => {
+        if (!window.confirm("댓글을 삭제할까요?")) return;
+        try {
+            await deleteComment(board, postId, id);
+            setComments(prev => prev.filter(c => c.id !== id));
+            setCommentTotal(t => Math.max(0, t - 1));
+        } catch (e) {
+            alert("댓글 삭제에 실패했습니다."); console.error(e);
+        }
+    };
+
 
     const handleLike = async () => {
+        if (liking) return;
+        setLiking(true);
         try {
-            const { liked: nextLiked } = await togglePostLike(board, postId);
+            const { liked: nextLiked, count } = await togglePostLike(board, postId);
             setLiked(nextLiked);
-            setLikes((prev) => (nextLiked ? prev + 1 : Math.max(0, prev - 1)));
+            if (Number.isFinite(count)) {
+                setLikes(count); // 서버가 내려준 총 개수로 맞춤
+            } else {
+                // (백엔드에 count 없을 때를 대비한 안전장치)
+                setLikes((prev) => (nextLiked ? prev + 1 : Math.max(0, prev - 1)));
+            }
         } catch (e) {
             const status = e?.response?.status;
             if (status === 401 || status === 403) {
@@ -134,8 +184,11 @@ export default function PostDetailPage() {
                 alert("좋아요 처리 중 오류가 발생했습니다.");
             }
             console.error(e);
+        } finally {
+            setLiking(false);
         }
     };
+
 
     const handleCommentSubmit = async () => {
         const content = newComment.trim();
@@ -149,7 +202,7 @@ export default function PostDetailPage() {
             });
             // 낙관적 업데이트
             setComments((prev) => [
-                { id, author: nickname, content, isEditing: false },
+                { id, author: nickname,mine: true,  content, isEditing: false,editValue: content, },
                 ...prev,
             ]);
             setCommentTotal((t) => t + 1);
@@ -213,6 +266,8 @@ export default function PostDetailPage() {
                                 className={`heart-btn ${liked ? "liked" : ""}`}
                                 onClick={handleLike}
                                 aria-pressed={liked}
+                                aria-busy={liking}
+                                disabled={liking}
                                 title={liked ? "좋아요 취소" : "좋아요"}
                             >
                                 {liked ? <HeartFilled size={24} /> : <HeartOutline size={24} />}
@@ -244,8 +299,40 @@ export default function PostDetailPage() {
                             <div key={comment.id} className="comment-box">
                                 <div className="comment-left">
                                     <span className="comment-author">{comment.author}</span>
-                                    <span className="comment-content">{comment.content}</span>
+
+                                    {!comment.isEditing ? (
+                                        <span className="comment-content">{comment.content}</span>
+                                    ) : (
+                                        <input
+                                            className="comment-edit-input"
+                                            type="text"
+                                            value={comment.editValue}
+                                            onChange={(e) =>
+                                                setComments(prev => prev.map(c =>
+                                                    c.id === comment.id ? { ...c, editValue: e.target.value } : c
+                                                ))
+                                            }
+                                            onKeyDown={(e) => { if (e.key === "Enter") saveEdit(comment.id); }}
+                                        />
+                                    )}
                                 </div>
+
+                                {/* 내 댓글에만 액션 버튼 */}
+                                {comment.mine && (
+                                    <div className="comment-actions">
+                                        {!comment.isEditing ? (
+                                            <>
+                                                <button type="button" className="comment-btn" onClick={() => startEdit(comment.id)}>수정</button>
+                                                <button type="button" className="comment-btn danger" onClick={() => removeComment(comment.id)}>삭제</button>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <button type="button" className="comment-btn" onClick={() => saveEdit(comment.id)}>저장</button>
+                                                <button type="button" className="comment-btn" onClick={() => cancelEdit(comment.id)}>취소</button>
+                                            </>
+                                        )}
+                                    </div>
+                                )}
                             </div>
                         ))}
 
