@@ -16,6 +16,10 @@ import RecipeListPage from './pages/Recipe/RecipeListPage.jsx';
 import RecipeRecommendPage from "./pages/Recipe/RecipeRecommendPage.jsx";
 import RecipeDetailPage from "./pages/Recipe/RecipeDetailPage.jsx";
 import ProtectedRoute from './components/ProtectedRoute';
+import AdminLayout from "./pages/Admin/AdminLayout";
+import AdminDashboard from "./pages/Admin/AdminDashboard";
+import AdminUsers from "./pages/Admin/AdminUsers";
+import AdminPosts from "./pages/Admin/AdminPosts";
 
 function App() {
     const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -58,6 +62,11 @@ function App() {
                 <Route path="/recipe" element={<AppLayout isLoggedIn={isLoggedIn} setIsLoggedIn={setIsLoggedIn}><RecipeListPage /></AppLayout>} />
                 <Route path="/recipe/recommend" element={<AppLayout isLoggedIn={isLoggedIn} setIsLoggedIn={setIsLoggedIn}><RecipeRecommendPage /></AppLayout>} />
                 <Route path="/recipe/:recipeId" element={<AppLayout isLoggedIn={isLoggedIn} setIsLoggedIn={setIsLoggedIn}><RecipeDetailPage /></AppLayout>} />
+                <Route path="/admin" element={<AdminLayout />}>
+                    <Route index element={<AdminDashboard />} />
+                    <Route path="users" element={<AdminUsers />} />
+                    <Route path="posts" element={<AdminPosts />} />
+                </Route>
             </Routes>
         </Router>
     );

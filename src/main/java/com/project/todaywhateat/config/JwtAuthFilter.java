@@ -1,6 +1,8 @@
+// com.project.todaywhateat.config.JwtAuthFilter
 package com.project.todaywhateat.config;
 
 import com.project.todaywhateat.jwt.JwtUtil;
+import com.project.todaywhateat.domain.User;
 import com.project.todaywhateat.repository.UserRepository;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -20,8 +22,8 @@ import java.util.List;
 @RequiredArgsConstructor
 public class JwtAuthFilter extends OncePerRequestFilter {
 
-    private final JwtUtil jwtUtil; // validateToken, getUsername, resolveToken 사용
-    private final UserRepository userRepository;
+    private final JwtUtil jwtUtil;
+    private final UserRepository userRepository; // ★ role 조회용
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -29,18 +31,21 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                                     FilterChain chain)
             throws ServletException, IOException {
 
-        // 1) 헤더/쿠키에서 토큰 추출 (네 util에 이미 존재)
         String token = jwtUtil.resolveToken(request);
 
         if (token != null && jwtUtil.validateToken(token)) {
-            // 2) subject = username (지금 util은 username을 subject로 저장함)
             String username = jwtUtil.getUsername(token);
 
-            // 3) Authentication 생성 (권한은 임시로 USER)
+            // DB에서 최신 role 조회 (예: "USER" 또는 "ADMIN")
+            String role = userRepository.findByUsername(username)
+                    .map(User::getRole)              // String role 필드 가정
+                    .map(String::toUpperCase)
+                    .orElse("USER");
+
+            var authorities = List.of(new SimpleGrantedAuthority("ROLE_" + role));
+
             var auth = new UsernamePasswordAuthenticationToken(
-                    username, // => 컨트롤러에서 auth.getName()
-                    null,
-                    List.of(new SimpleGrantedAuthority("ROLE_USER"))
+                    username, null, authorities
             );
             SecurityContextHolder.getContext().setAuthentication(auth);
         }
