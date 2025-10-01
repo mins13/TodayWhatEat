@@ -1,17 +1,52 @@
 import React, { useState } from "react";
-import Header from "../../components/Header";
-import Footer from "../../components/Footer";
+import { useNavigate } from "react-router-dom";
 import Sidebar from "../../components/Community/CommunityLayout";
 import "./PostWritePage.css";
+import { createPost } from "../../api/communityApi";
+
+const BOARD_CODE_MAP = {
+    "자유 게시판": "free",
+    "레시피 게시판": "recipe",
+    "정보 게시판": "info",
+    // "공지사항": "notice", // 필요하면 옵션 추가해서 사용
+};
 
 export default function PostWritePage() {
+    const navigate = useNavigate();
+
     const [title, setTitle] = useState("");
     const [content, setContent] = useState("");
+    const [authorName, setAuthorName] = useState(""); // 선택 입력 (미입력 시 서버에서 "익명")
     const [board, setBoard] = useState("자유 게시판");
+    const [submitting, setSubmitting] = useState(false);
 
-    const handleSubmit = () => {
-        alert(`제목: ${title}\n내용: ${content}\n게시판: ${board}`);
-        // TODO: 실제 저장 API 연결
+    const handleSubmit = async () => {
+        if (!title.trim()) {
+            alert("제목을 입력하세요.");
+            return;
+        }
+        if (!content.trim()) {
+            alert("내용을 입력하세요.");
+            return;
+        }
+
+        const boardCode = BOARD_CODE_MAP[board];
+        if (!boardCode) {
+            alert("게시판 선택이 올바르지 않습니다.");
+            return;
+        }
+
+        try {
+            setSubmitting(true);
+            const { id } = await createPost(boardCode, { title, content, authorName });
+            // 등록 성공 → 해당 게시판 상세로 이동
+            navigate(`/community/${boardCode}/${id}`);
+        } catch (e) {
+            console.error(e);
+            alert("글 등록에 실패했습니다. 잠시 후 다시 시도해주세요.");
+        } finally {
+            setSubmitting(false);
+        }
     };
 
     return (
@@ -23,6 +58,14 @@ export default function PostWritePage() {
 
                 <div className="right-panel">
                     <h2 className="write-title">글쓰기</h2>
+
+                    {/* 작성자(선택) */}
+                    <input
+                        className="write-input"
+                        placeholder="작성자 (선택, 미입력 시 '익명')"
+                        value={authorName}
+                        onChange={(e) => setAuthorName(e.target.value)}
+                    />
 
                     <input
                         className="write-input"
@@ -44,14 +87,21 @@ export default function PostWritePage() {
                             className="write-select"
                             value={board}
                             onChange={(e) => setBoard(e.target.value)}
+                            disabled={submitting}
                         >
                             <option>자유 게시판</option>
                             <option>레시피 게시판</option>
                             <option>정보 게시판</option>
+                            {/* <option>공지사항</option> */}
                         </select>
 
-                        <button className="write-submit" onClick={handleSubmit}>
-                            저장
+                        <button
+                            className="write-submit"
+                            onClick={handleSubmit}
+                            disabled={submitting}
+                            title={submitting ? "저장 중..." : "저장"}
+                        >
+                            {submitting ? "저장 중..." : "저장"}
                         </button>
                     </div>
                 </div>

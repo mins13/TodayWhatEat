@@ -47,7 +47,14 @@ function App() {
                 <Route path="/community/recipe" element={<AppLayout isLoggedIn={isLoggedIn} setIsLoggedIn={setIsLoggedIn}><RecipePage /></AppLayout>} />
                 <Route path="/community/info" element={<AppLayout isLoggedIn={isLoggedIn} setIsLoggedIn={setIsLoggedIn}><InfoPage /></AppLayout>} />
                 <Route path="/community/write" element={<AppLayout isLoggedIn={isLoggedIn} setIsLoggedIn={setIsLoggedIn}><PostWritePage /></AppLayout>} />
-                <Route path="/community/:postId" element={<AppLayout isLoggedIn={isLoggedIn} setIsLoggedIn={setIsLoggedIn}><PostDetailPage /></AppLayout>} />
+                <Route
+                    path="/community/:board/:postId"
+                    element={
+                        <AppLayout isLoggedIn={isLoggedIn} setIsLoggedIn={setIsLoggedIn}>
+                            <PostDetailPage />
+                        </AppLayout>
+                    }
+                />
                 <Route path="/recipe" element={<AppLayout isLoggedIn={isLoggedIn} setIsLoggedIn={setIsLoggedIn}><RecipeListPage /></AppLayout>} />
                 <Route path="/recipe/recommend" element={<AppLayout isLoggedIn={isLoggedIn} setIsLoggedIn={setIsLoggedIn}><RecipeRecommendPage /></AppLayout>} />
                 <Route path="/recipe/:recipeId" element={<AppLayout isLoggedIn={isLoggedIn} setIsLoggedIn={setIsLoggedIn}><RecipeDetailPage /></AppLayout>} />

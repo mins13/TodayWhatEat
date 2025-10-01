@@ -1,69 +1,182 @@
+// src/pages/Community/PostDetailPage.jsx
+import React, { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import React, { useState } from "react";
-import './PostDetailPage.css';
+import "./PostDetailPage.css";
 import Sidebar from "../../components/Community/CommunityLayout.jsx";
 import HeartFilled from "../../assets/icons/HeartFilled";
 import HeartOutline from "../../assets/icons/HeartOutline";
+import {
+    fetchPostDetail,
+    togglePostLike,
+    fetchComments,
+    addComment,
+} from "../../api/communityApi";
+
+const BOARD_LABEL_MAP = {
+    free: "자유 게시판",
+    recipe: "레시피 게시판",
+    info: "정보게시판",
+    notice: "공지사항",
+};
 
 export default function PostDetailPage() {
-    const { postId } = useParams();
+    const { board = "free", postId } = useParams();
     const navigate = useNavigate();
 
+    // ------- 공통: 현재 로그인 닉네임 (없으면 '익명')
+    const nickname =
+        localStorage.getItem("nickname") ||
+        localStorage.getItem("username") ||
+        localStorage.getItem("name") ||
+        "익명";
+
+    // 게시글
+    const [post, setPost] = useState(null);
+    const pageTitle = useMemo(
+        () => BOARD_LABEL_MAP[board] ?? "커뮤니티",
+        [board]
+    );
+
+    // 좋아요
     const [liked, setLiked] = useState(false);
-    const [likes, setLikes] = useState(7);
-    const [showAllComments, setShowAllComments] = useState(false);
-    const [comments, setComments] = useState([
-        { id: 1, author: "맛집탐험가", content: "밖에 나가서 맛집 돌아다녀봐 은근 재밌음", isEditing: false },
-        { id: 2, author: "음식사랑", content: "룰 하실?", isEditing: false },
-        { id: 3, author: "이민영", content: "원하면 요리 추천 해줄까?", isEditing: false },
-        { id: 4, author: "사용자1", content: "저도 요리 좋아해요!", isEditing: false },
-        { id: 5, author: "사용자2", content: "오늘은 볶음밥 어떠세요?", isEditing: false },
-        { id: 6, author: "사용자3", content: "에어프라이어로 감자 구워보세요!", isEditing: false },
-        { id: 7, author: "사용자4", content: "달걀찜 추천!", isEditing: false },
-        { id: 8, author: "사용자5", content: "김치전 최고입니다.", isEditing: false },
-    ]);
+    const [likes, setLikes] = useState(0);
+
+    // 조회수
+    const [views, setViews] = useState(0);
+
+    // 댓글
+    const [comments, setComments] = useState([]);
+    const [commentPage, setCommentPage] = useState(1);
+    const [commentTotal, setCommentTotal] = useState(0);
     const [newComment, setNewComment] = useState("");
+    const COMMENTS_PAGE_SIZE = 10;
 
-    const handleLike = () => {
-        setLikes(prev => liked ? prev - 1 : prev + 1);
-        setLiked(!liked);
-    };
+    // 상세 조회(서버에서 조회수 +1)
+    useEffect(() => {
+        if (!postId) return;
+        (async () => {
+            try {
+                const data = await fetchPostDetail(board, postId);
+                setPost(data);
+                setLikes(Number(data?.likesCount ?? 0));
+                setViews(Number(data?.viewsCount ?? data?.viewCount ?? 0));
+                if (typeof data?.liked === "boolean") setLiked(data.liked);
+            } catch (e) {
+                console.error(e);
+                alert("게시글을 불러오지 못했습니다.");
+                navigate(`/community/${board}`);
+            }
+        })();
+    }, [board, postId, navigate]);
 
-    const handleCommentSubmit = () => {
-        if (newComment.trim()) {
-            const newId = comments.length ? Math.max(...comments.map(c => c.id)) + 1 : 1;
-            setComments(prev => [
-                { id: newId, author: "익명", content: newComment, isEditing: false },
-                ...prev
+    // 댓글 1페이지
+    useEffect(() => {
+        if (!postId) return;
+        (async () => {
+            try {
+                const { items, total } = await fetchComments(board, postId, {
+                    page: 1,
+                    size: COMMENTS_PAGE_SIZE,
+                });
+                // 서버 필드명(authorName)에 맞춰 매핑
+                setComments(
+                    (items || []).map((c) => ({
+                        id: c.id,
+                        author: c.authorName ?? "익명",
+                        content: c.content ?? "",
+                        isEditing: false,
+                    }))
+                );
+                setCommentTotal(total ?? 0);
+                setCommentPage(1);
+            } catch (e) {
+                console.error(e);
+                alert("댓글을 불러오지 못했습니다.");
+            }
+        })();
+    }, [board, postId]);
+
+    const hasMoreComments = comments.length < commentTotal;
+
+    const loadMoreComments = async () => {
+        const nextPage = commentPage + 1;
+        try {
+            const { items } = await fetchComments(board, postId, {
+                page: nextPage,
+                size: COMMENTS_PAGE_SIZE,
+            });
+            setComments((prev) => [
+                ...prev,
+                ...(items || []).map((c) => ({
+                    id: c.id,
+                    author: c.authorName ?? "익명",
+                    content: c.content ?? "",
+                    isEditing: false,
+                })),
             ]);
-            setNewComment("");
+            setCommentPage(nextPage);
+        } catch (e) {
+            console.error(e);
+            alert("댓글 더보기에 실패했습니다.");
         }
     };
 
-    const handleDelete = (id) => {
-        setComments(prev => prev.filter(comment => comment.id !== id));
+    const handleLike = async () => {
+        try {
+            const { liked: nextLiked } = await togglePostLike(board, postId);
+            setLiked(nextLiked);
+            setLikes((prev) => (nextLiked ? prev + 1 : Math.max(0, prev - 1)));
+        } catch (e) {
+            const status = e?.response?.status;
+            if (status === 401 || status === 403) {
+                alert("좋아요 처리에 실패했습니다. 로그인 상태를 확인해주세요.");
+            } else {
+                alert("좋아요 처리 중 오류가 발생했습니다.");
+            }
+            console.error(e);
+        }
     };
 
-    const handleEditToggle = (id) => {
-        setComments(prev => prev.map(comment =>
-            comment.id === id ? { ...comment, isEditing: !comment.isEditing } : comment
-        ));
+    const handleCommentSubmit = async () => {
+        const content = newComment.trim();
+        if (!content) return;
+
+        try {
+            // ✅ 닉네임을 authorName으로 함께 보냄 (원하면 서버에서 기본값 설정도 가능)
+            const { id } = await addComment(board, postId, {
+                content,
+                authorName: nickname,
+            });
+            // 낙관적 업데이트
+            setComments((prev) => [
+                { id, author: nickname, content, isEditing: false },
+                ...prev,
+            ]);
+            setCommentTotal((t) => t + 1);
+            setNewComment("");
+        } catch (e) {
+            const status = e?.response?.status;
+            if (status === 401 || status === 403) {
+                alert("로그인이 필요합니다.");
+            } else {
+                alert("댓글 작성에 실패했습니다.");
+            }
+            console.error(e);
+        }
     };
 
-    const handleEditChange = (id, newContent) => {
-        setComments(prev => prev.map(comment =>
-            comment.id === id ? { ...comment, content: newContent } : comment
-        ));
-    };
-
-    const post = {
-        id: postId,
-        title: "오늘 뭐할까",
-        author: "익명",
-        content: "오늘 좀 심심한데 뭐 하면서 놀지 요리나 해볼까?"
-    };
-
-    const visibleComments = showAllComments ? comments : comments.slice(0, 7);
+    if (!post) {
+        return (
+            <div className="main-container">
+                <div className="community-wrapper">
+                    <div className="left-panel">
+                        <Sidebar />
+                    </div>
+                    <div className="right-panel">로딩 중...</div>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="main-container">
@@ -74,8 +187,11 @@ export default function PostDetailPage() {
 
                 <div className="right-panel">
                     <div className="post-header">
-                        <h2 className="page-title">자유 게시판</h2>
-                        <button className="back-button" onClick={() => navigate("/community/free")}>
+                        <h2 className="page-title">{pageTitle}</h2>
+                        <button
+                            className="back-button"
+                            onClick={() => navigate(`/community/${board}`)}
+                        >
                             목록으로
                         </button>
                     </div>
@@ -84,14 +200,27 @@ export default function PostDetailPage() {
                     <div className="post-box">
                         <div className="post-title-bar">
                             <span className="post-title">{post.title}</span>
-                            <span className="post-author">작성자: {post.author}</span>
+                            {/* ✅ 서버 필드명에 맞춰 표시 */}
+                            <span className="post-author">
+                작성자: {post.authorName ?? post.author ?? "익명"}
+              </span>
                         </div>
+
                         <div className="post-content">{post.content}</div>
+
                         <div className="post-reactions">
-                            <button className="heart-btn" onClick={handleLike}>
+                            <button
+                                className={`heart-btn ${liked ? "liked" : ""}`}
+                                onClick={handleLike}
+                                aria-pressed={liked}
+                                title={liked ? "좋아요 취소" : "좋아요"}
+                            >
                                 {liked ? <HeartFilled size={24} /> : <HeartOutline size={24} />}
                             </button>
                             <span>{likes}</span>
+                            {Number.isFinite(views) && (
+                                <span style={{ color: "#666" }}>조회 {views}</span>
+                            )}
                         </div>
                     </div>
 
@@ -104,40 +233,25 @@ export default function PostDetailPage() {
                                 placeholder="댓글을 입력하세요."
                                 value={newComment}
                                 onChange={(e) => setNewComment(e.target.value)}
+                                onKeyDown={(e) => {
+                                    if (e.key === "Enter") handleCommentSubmit();
+                                }}
                             />
                             <button onClick={handleCommentSubmit}>보내기</button>
                         </div>
 
-                        {visibleComments.map((comment) => (
+                        {comments.map((comment) => (
                             <div key={comment.id} className="comment-box">
                                 <div className="comment-left">
                                     <span className="comment-author">{comment.author}</span>
-                                    {comment.isEditing ? (
-                                        <input
-                                            className="comment-edit-input"
-                                            value={comment.content}
-                                            onChange={(e) => handleEditChange(comment.id, e.target.value)}
-                                        />
-                                    ) : (
-                                        <span className="comment-content">{comment.content}</span>
-                                    )}
+                                    <span className="comment-content">{comment.content}</span>
                                 </div>
-                                <span className="edit-delete">
-                                    <button onClick={() => handleEditToggle(comment.id)}>
-                                        {comment.isEditing ? "저장" : "수정"}
-                                    </button>{" "}
-                                    |{" "}
-                                    <button onClick={() => handleDelete(comment.id)}>삭제</button>
-                                </span>
                             </div>
                         ))}
 
-                        {comments.length > 7 && (
-                            <button
-                                className="toggle-comments-btn"
-                                onClick={() => setShowAllComments(!showAllComments)}
-                            >
-                                {showAllComments ? "접기" : "댓글 더보기"}
+                        {hasMoreComments && (
+                            <button className="toggle-comments-btn" onClick={loadMoreComments}>
+                                댓글 더보기
                             </button>
                         )}
                     </div>

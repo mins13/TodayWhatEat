@@ -1,59 +1,56 @@
-import React, { useState } from "react";
+// src/pages/community/FreePage.jsx
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "../../components/Community/CommunityLayout";
 import searchIcon from "../../assets/Icon.jpg";
 import "./FreePage.css";
+import { fetchPosts } from "../../api/communityApi"; // ✅ 백엔드 연동 유틸
 
 export default function FreePage() {
     const navigate = useNavigate();
+
+    // 검색/정렬/페이지 상태
+    const [query, setQuery] = useState("");
+    const [searchInput, setSearchInput] = useState("");
+    const [sort, setSort] = useState("latest"); // latest | views | likes
     const [currentPage, setCurrentPage] = useState(1);
+
+    // 데이터
+    const [posts, setPosts] = useState([]);
+    const [total, setTotal] = useState(0);
+
+    // 페이지네이션 설정
     const postsPerPage = 5;
-    const pageLimit = 5; // 한 번에 보여줄 페이지 수
+    const pageLimit = 5;
 
-    const postList = [
-        {
-            id: 1,
-            title: "오늘 날씨 너무 좋네요!",
-            content: "벚꽃이 활짝 폈어요~ 다들 산책하세요 🌸",
-            author: "민영",
-        },
-        {
-            id: 2,
-            title: "간단한 요리 추천해주세요",
-            content: "냉장고에 계란이랑 치즈밖에 없어요 ㅠㅠ",
-            author: "요리초보",
-        },
-        {
-            id: 3,
-            title: "좋은 하루 되세요 :)",
-            content: "여러분의 하루가 따뜻했으면 좋겠어요",
-            author: "응원러",
-        },
-        // 더미 데이터
-        ...Array.from({ length: 60 }, (_, i) => ({
-            id: i + 4,
-            title: `자유글 ${i + 4}`,
-            content: `${i + 4}번 자유글 내용입니다.`,
-            author: `작성자${i + 4}`,
-        }))
-    ];
+    useEffect(() => {
+        (async () => {
+            try {
+                const { items, total } = await fetchPosts("free", {
+                    query,
+                    sort,
+                    page: currentPage,
+                    size: postsPerPage,
+                });
+                setPosts(items);
+                setTotal(total);
+            } catch (e) {
+                console.error(e);
+                alert("게시글을 불러오지 못했습니다.");
+            }
+        })();
+    }, [query, sort, currentPage]);
 
-    const totalPages = Math.ceil(postList.length / postsPerPage);
-    const indexOfLastPost = currentPage * postsPerPage;
-    const indexOfFirstPost = indexOfLastPost - postsPerPage;
-    const currentPosts = postList.slice(indexOfFirstPost, indexOfLastPost);
-
+    const totalPages = Math.max(1, Math.ceil(total / postsPerPage));
     const currentGroup = Math.floor((currentPage - 1) / pageLimit);
     const startPage = currentGroup * pageLimit + 1;
     const endPage = Math.min(startPage + pageLimit - 1, totalPages);
-
     const pageNumbers = [];
-    for (let i = startPage; i <= endPage; i++) {
-        pageNumbers.push(i);
-    }
+    for (let i = startPage; i <= endPage; i++) pageNumbers.push(i);
 
     const handleSearch = () => {
-        alert("검색 실행");
+        setQuery(searchInput);
+        setCurrentPage(1);
     };
 
     return (
@@ -64,12 +61,14 @@ export default function FreePage() {
                 </div>
 
                 <div className="right-panel">
-                    <button
-                        className="free-write-btn"
-                        onClick={() => navigate("/community/write")}
-                    >
-                        글쓰기
-                    </button>
+
+                        <button
+                            className="free-write-btn"
+                            onClick={() => navigate("/community/write")}
+                        >
+                            글쓰기
+                        </button>
+
 
                     <div className="free-header">
                         <h2>자유게시판</h2>
@@ -77,44 +76,69 @@ export default function FreePage() {
                     </div>
 
                     <div className="free-search">
-                        <input type="text" placeholder="검색어를 입력하세요" />
+                        <input
+                            type="text"
+                            placeholder="검색어를 입력하세요"
+                            value={searchInput}
+                            onChange={(e) => setSearchInput(e.target.value)}
+                            onKeyDown={(e) => {
+                                if (e.key === "Enter") handleSearch();
+                            }}
+                        />
                         <button className="search-button" onClick={handleSearch}>
                             <img src={searchIcon} alt="검색" />
                         </button>
                     </div>
 
                     <div className="free-list">
-                        {currentPosts.map((post) => (
-                            <div
-                                className="free-item"
-                                key={post.id}
-                                onClick={() => navigate(`/community/${post.id}`)}
-                            >
-                                <div className="free-left">
-                                    <div className="free-title">{post.title}</div>
-                                    <div className="free-content">{post.content}</div>
-                                </div>
-                                <div className="free-right">
-                                    작성자: {post.author}
-                                    <div className="actions">
-                                        <span onClick={(e) => { e.stopPropagation(); alert("수정!"); }}>수정</span>
-                                        <span onClick={(e) => { e.stopPropagation(); alert("삭제!"); }}>삭제</span>
+                        {posts.length === 0 ? (
+                            <div className="free-item" style={{ justifyContent: "center" }}>
+                                검색 결과가 없습니다.
+                            </div>
+                        ) : (
+                            posts.map((post) => (
+                                <div
+                                    className="free-item"
+                                    key={post.id}
+                                    onClick={() => navigate(`/community/free/${post.id}`)}
+                                >
+                                    <div className="free-left">
+                                        <div className="free-title">{post.title}</div>
+                                        <div className="free-content">{post.content}</div>
+                                    </div>
+                                    <div className="free-right">
+                                        작성자: {post.author}
+                                        <div className="actions">
+                      <span
+                          onClick={(e) => {
+                              e.stopPropagation();
+                              alert("수정!");
+                          }}
+                      >
+                        수정
+                      </span>
+                                            <span
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    alert("삭제!");
+                                                }}
+                                            >
+                        삭제
+                      </span>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        ))}
+                            ))
+                        )}
                     </div>
 
                     {totalPages >= 1 && (
                         <div className="free-pagination">
-                            <button
-                                onClick={() => setCurrentPage(1)}
-                                disabled={currentPage === 1}
-                            >
+                            <button onClick={() => setCurrentPage(1)} disabled={currentPage === 1}>
                                 《
                             </button>
                             <button
-                                onClick={() => setCurrentPage(startPage - 1)}
+                                onClick={() => setCurrentPage(Math.max(1, startPage - 1))}
                                 disabled={startPage === 1}
                             >
                                 〈
@@ -126,13 +150,13 @@ export default function FreePage() {
                                     className={page === currentPage ? "active-page" : ""}
                                     onClick={() => setCurrentPage(page)}
                                 >
-                                    {page}
-                                </span>
+                  {page}
+                </span>
                             ))}
 
                             <button
-                                onClick={() => setCurrentPage(endPage + 1)}
-                                disabled={endPage === totalPages}
+                                onClick={() => setCurrentPage(Math.min(totalPages, endPage + 1))}
+                                disabled={endPage >= totalPages}
                             >
                                 〉
                             </button>
