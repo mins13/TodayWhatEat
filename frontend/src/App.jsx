@@ -20,6 +20,10 @@ import AdminLayout from "./pages/Admin/AdminLayout";
 import AdminDashboard from "./pages/Admin/AdminDashboard";
 import AdminUsers from "./pages/Admin/AdminUsers";
 import AdminPosts from "./pages/Admin/AdminPosts";
+import MyRecipePage from "./pages/Recipe/MyRecipePage.jsx";
+import RecipeApprovals from "./pages/Admin/RecipeApprovals.jsx";
+import AdminNotices from "./pages/Admin/AdminNotices.jsx";
+import AdminRecipes from "./pages/Admin/AdminRecipes.jsx";
 
 function App() {
     const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -38,35 +42,50 @@ function App() {
     return (
         <Router>
             <Routes>
-                <Route path="/" element={<AppLayout isLoggedIn={isLoggedIn} setIsLoggedIn={setIsLoggedIn}><Main /></AppLayout>} />
+                <Route path="/"
+                       element={<AppLayout isLoggedIn={isLoggedIn} setIsLoggedIn={setIsLoggedIn}><Main/></AppLayout>}/>
                 <Route path="/login" element={
                     <AppLayout isLoggedIn={isLoggedIn} setIsLoggedIn={setIsLoggedIn}>
-                        <Login setIsLoggedIn={setIsLoggedIn} />
+                        <Login setIsLoggedIn={setIsLoggedIn}/>
                     </AppLayout>
-                } />
-                <Route path="/signup" element={<AppLayout isLoggedIn={isLoggedIn} setIsLoggedIn={setIsLoggedIn}><Signup /></AppLayout>} />
-                <Route path="/calendar" element={<ProtectedRoute><AppLayout isLoggedIn={isLoggedIn} setIsLoggedIn={setIsLoggedIn}><CalendarPage /></AppLayout></ProtectedRoute>} />
-                <Route path="/community" element={<AppLayout isLoggedIn={isLoggedIn} setIsLoggedIn={setIsLoggedIn}><NoticePage /></AppLayout>} />
-                <Route path="/community/free" element={<AppLayout isLoggedIn={isLoggedIn} setIsLoggedIn={setIsLoggedIn}><FreePage /></AppLayout>} />
-                <Route path="/community/recipe" element={<AppLayout isLoggedIn={isLoggedIn} setIsLoggedIn={setIsLoggedIn}><RecipePage /></AppLayout>} />
-                <Route path="/community/info" element={<AppLayout isLoggedIn={isLoggedIn} setIsLoggedIn={setIsLoggedIn}><InfoPage /></AppLayout>} />
-                <Route path="/community/write" element={<AppLayout isLoggedIn={isLoggedIn} setIsLoggedIn={setIsLoggedIn}><PostWritePage /></AppLayout>} />
+                }/>
+                <Route path="/signup" element={<AppLayout isLoggedIn={isLoggedIn}
+                                                          setIsLoggedIn={setIsLoggedIn}><Signup/></AppLayout>}/>
+                <Route path="/calendar" element={<ProtectedRoute><AppLayout isLoggedIn={isLoggedIn}
+                                                                            setIsLoggedIn={setIsLoggedIn}><CalendarPage/></AppLayout></ProtectedRoute>}/>
+                <Route path="/community" element={<AppLayout isLoggedIn={isLoggedIn}
+                                                             setIsLoggedIn={setIsLoggedIn}><NoticePage/></AppLayout>}/>
+                <Route path="/community/free" element={<AppLayout isLoggedIn={isLoggedIn} setIsLoggedIn={setIsLoggedIn}><FreePage/></AppLayout>}/>
+                <Route path="/community/recipe" element={<AppLayout isLoggedIn={isLoggedIn}
+                                                                    setIsLoggedIn={setIsLoggedIn}><RecipePage/></AppLayout>}/>
+                <Route path="/community/info" element={<AppLayout isLoggedIn={isLoggedIn} setIsLoggedIn={setIsLoggedIn}><InfoPage/></AppLayout>}/>
+                <Route path="/community/write" element={<AppLayout isLoggedIn={isLoggedIn}
+                                                                   setIsLoggedIn={setIsLoggedIn}><PostWritePage/></AppLayout>}/>
                 <Route
                     path="/community/:board/:postId"
                     element={
                         <AppLayout isLoggedIn={isLoggedIn} setIsLoggedIn={setIsLoggedIn}>
-                            <PostDetailPage />
+                            <PostDetailPage/>
                         </AppLayout>
                     }
                 />
-                <Route path="/recipe" element={<AppLayout isLoggedIn={isLoggedIn} setIsLoggedIn={setIsLoggedIn}><RecipeListPage /></AppLayout>} />
-                <Route path="/recipe/recommend" element={<AppLayout isLoggedIn={isLoggedIn} setIsLoggedIn={setIsLoggedIn}><RecipeRecommendPage /></AppLayout>} />
-                <Route path="/recipe/:recipeId" element={<AppLayout isLoggedIn={isLoggedIn} setIsLoggedIn={setIsLoggedIn}><RecipeDetailPage /></AppLayout>} />
-                <Route path="/admin" element={<AdminLayout />}>
-                    <Route index element={<AdminDashboard />} />
-                    <Route path="users" element={<AdminUsers />} />
-                    <Route path="posts" element={<AdminPosts />} />
+                <Route path="/recipe" element={<AppLayout isLoggedIn={isLoggedIn}
+                                                          setIsLoggedIn={setIsLoggedIn}><RecipeListPage/></AppLayout>}/>
+                <Route path="/recipe/recommend"
+                       element={<AppLayout isLoggedIn={isLoggedIn} setIsLoggedIn={setIsLoggedIn}><RecipeRecommendPage/></AppLayout>}/>
+                <Route path="/recipe/:recipeId" element={<AppLayout isLoggedIn={isLoggedIn}
+                                                                    setIsLoggedIn={setIsLoggedIn}><RecipeDetailPage/></AppLayout>}/>
+                <Route path="/recipe/my" element={<AppLayout isLoggedIn={isLoggedIn}
+                                                             setIsLoggedIn={setIsLoggedIn}><MyRecipePage/></AppLayout>}/>
+                <Route path="/admin" element={<AdminLayout/>}>
+                    <Route index element={<AdminDashboard/>}/>
+                    <Route path="users" element={<AdminUsers/>}/>
+                    <Route path="posts" element={<AdminPosts/>}/>
+                    <Route path="approvals/recipes" element={<RecipeApprovals/>}/>
+                    <Route path="recipes" element={<AdminRecipes/>}/>
+                    <Route path="notices" element={<AdminNotices/>}/>
                 </Route>
+
             </Routes>
         </Router>
     );

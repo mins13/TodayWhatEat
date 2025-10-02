@@ -5,8 +5,9 @@ const MENUS = [
     { to: "/admin", label: "대시보드", icon: "🏠", end: true },
     { to: "/admin/users", label: "유저 관리", icon: "👥" },
     { to: "/admin/posts", label: "게시글 관리", icon: "📝" },
-    // 필요 시: { to: "/admin/recipes", label: "레시피 관리", icon: "🍳" },
-    // 필요 시: { to: "/admin/notices", label: "공지 등록", icon: "📢" },
+    { to: "/admin/approvals/recipes", label: "레시피 승인", icon: "🍳" },
+    { to: "/admin/recipes", label: "레시피 관리", icon: "🧂" },
+    { to: "/admin/notices", label: "공지 등록", icon: "📢" },
 ];
 
 export default function AdminLayout() {

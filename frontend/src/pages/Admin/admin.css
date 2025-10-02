@@ -85,3 +85,21 @@
 /* misc */
 .loading{padding:20px}
 .muted{color:var(--muted)}
+
+/* 모달 */
+.modal {
+    position: fixed; inset: 0; background: rgba(0,0,0,.35);
+    display: flex; align-items: center; justify-content: center; z-index: 50;
+}
+.modal-card {
+    background: #fff; border: 1px solid #e5e7eb; border-radius: 14px;
+    padding: 18px; width: 90%; max-width: 520px; box-shadow: 0 10px 40px rgba(0,0,0,.15);
+}
+.modal-card h3 { margin-top: 0; }
+
+.modal-card label { display: flex; flex-direction: column; gap: 8px; margin: 10px 0; }
+.modal-card input, .modal-card textarea {
+    border: 1px solid #e5e7eb; border-radius: 10px; padding: 10px 12px; font-size: 14px;
+}
+
+.admin-page h2 { margin: 6px 0 12px; }
