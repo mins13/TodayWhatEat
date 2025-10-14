@@ -13,11 +13,15 @@ import com.project.todaywhateat.repository.Community.PostLikeRepo;
 import com.project.todaywhateat.repository.Community.PostRepo;
 import com.project.todaywhateat.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.*;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;   // ✅ 스프링 트랜잭션
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 @Service
@@ -78,23 +82,35 @@ public class CommunityService {
         );
     }
 
-    @Transactional // 쓰기
-    public PostDetailDto getAndIncreaseView(String boardCode, Long id){
-        return getAndIncreaseView(boardCode, id, null);
-    }
     @Transactional
     public PostDetailDto getAndIncreaseView(String boardCode, Long id, String usernameOrNull){
         Post post = findPost(boardCode, id);
+
+        // 조회수 +1
         post.setViewsCount(post.getViewsCount() + 1);
 
-        Boolean liked = null;
+        // 로그인 사용자 ID (없으면 null)
+        Long me = null;
         if (usernameOrNull != null && !usernameOrNull.isBlank()) {
-            var user = userRepository.findByUsername(usernameOrNull).orElse(null);
-            if (user != null) {
-                liked = likeRepo.existsByPost_IdAndUserId(post.getId(), user.getId());
-            }
+            me = userRepository.findByUsername(usernameOrNull)
+                    .map(User::getId)
+                    .orElse(null);
         }
-        return PostDetailDto.from(post, liked);
+
+        // 좋아요 여부
+        Boolean liked = (me != null)
+                ? likeRepo.existsByPost_IdAndUserId(post.getId(), me) // ✅ 여러분 프로젝트에 이미 쓰던 네이밍
+                : null;
+
+        // mine 계산: 작성자이거나 관리자
+        boolean isOwner = (me != null) && post.getUserId() != null && post.getUserId().equals(me);
+        boolean isAdmin = java.util.Optional.ofNullable(SecurityContextHolder.getContext().getAuthentication())
+                .map(a -> a.getAuthorities().stream().anyMatch(gr -> "ROLE_ADMIN".equals(gr.getAuthority())))
+                .orElse(false);
+
+        Boolean mine = (me != null) ? (isOwner || isAdmin) : false;
+
+        return PostDetailDto.from(post, liked, mine); // ✅ PostDetailDto 오버로드( liked, mine ) 버전 호출
     }
 
     @Transactional(readOnly = true)
@@ -114,6 +130,7 @@ public class CommunityService {
                 p.getTotalElements()
         );
     }
+
 
     /** 좋아요 총 개수(컨트롤러에서 응답으로 내려줄 때 사용) */
     public long likeCount(Long postId) {

@@ -12,6 +12,8 @@ import {
     addComment,
     updateComment,
     deleteComment,
+    updatePost,
+    deletePost,
 } from "../../api/communityApi";
 
 
@@ -32,6 +34,7 @@ export default function PostDetailPage() {
         localStorage.getItem("username") ||
         localStorage.getItem("name") ||
         "익명";
+    const userId = localStorage.getItem("userId");
 
     // 게시글
     const [post, setPost] = useState(null);
@@ -39,6 +42,9 @@ export default function PostDetailPage() {
         () => BOARD_LABEL_MAP[board] ?? "커뮤니티",
         [board]
     );
+    const [isEditing, setIsEditing] = useState(false);
+    const [editTitle, setEditTitle] = useState("");
+    const [editContent, setEditContent] = useState("");
 
     // 좋아요
     const [liked, setLiked] = useState(false);
@@ -63,6 +69,8 @@ export default function PostDetailPage() {
             try {
                 const data = await fetchPostDetail(board, postId);
                 setPost(data);
+                setEditTitle(data?.title ?? "");
+                setEditContent(data?.content ?? "");
                 setLikes(Number(data?.likesCount ?? 0));
                 setViews(Number(data?.viewsCount ?? data?.viewCount ?? 0));
                 if (typeof data?.liked === "boolean") setLiked(data.liked);
@@ -231,6 +239,55 @@ export default function PostDetailPage() {
         );
     }
 
+    const isMine = !!post?.mine;
+
+    const beginEdit = () => {
+           setEditTitle(post?.title ?? "");
+           setEditContent(post?.content ?? "");
+           setIsEditing(true);
+         };
+
+         const cancelEditPost = () => {
+           setIsEditing(false);
+           setEditTitle(post?.title ?? "");
+           setEditContent(post?.content ?? "");
+         };
+
+         const saveEditPost = async () => {
+           const title = (editTitle || "").trim();
+           const content = (editContent || "").trim();
+           if (!title) return alert("제목을 입력하세요.");
+           if (!content) return alert("내용을 입력하세요.");
+           try {
+               const updated = await updatePost(board, postId, { title, content });
+                 // 서버 응답 기준으로 post 갱신
+                     setPost(prev => ({ ...prev, ...updated, title, content }));
+                 setIsEditing(false);
+                 // 접근성 피드백
+                     setTimeout(() => alert("수정되었습니다."), 0);
+           } catch (e) {
+               const status = e?.response?.status;
+                if (status === 401 || status === 403) alert("로그인이 필요합니다.");
+                else alert(e?.response?.data?.message || "수정에 실패했습니다.");
+                 console.error(e);
+              }
+         };
+
+         const removePost = async () => {
+           if (!window.confirm("게시글을 삭제하시겠습니까?")) return;
+           try {
+                 await deletePost(board, postId);
+                 alert("삭제되었습니다.");
+                 navigate(`/community/${board}`);
+               } catch (e) {
+                 const status = e?.response?.status;
+                 if (status === 401 || status === 403) alert("로그인이 필요합니다.");
+                 else alert(e?.response?.data?.message || "삭제에 실패했습니다.");
+                 console.error(e);
+               }
+         };
+
+
     return (
         <div className="main-container">
             <div className="community-wrapper">
@@ -252,14 +309,30 @@ export default function PostDetailPage() {
 
                     <div className="post-box">
                         <div className="post-title-bar">
-                            <span className="post-title">{post.title}</span>
-                            {/* ✅ 서버 필드명에 맞춰 표시 */}
+                            {!isEditing ? (
+                                <span className="post-title">{post.title}</span>
+                            ) : (
+                                <input
+                                    className="post-edit-title"
+                                    value={editTitle}
+                                    onChange={(e) => setEditTitle(e.target.value)}
+                                />)}
+
                             <span className="post-author">
                 작성자: {post.authorName ?? post.author ?? "익명"}
               </span>
                         </div>
 
-                        <div className="post-content">{post.content}</div>
+                        {!isEditing ? (
+                                <div className="post-content">{post.content}</div>
+                        ) : (
+                            <textarea
+                                className="post-edit-content"
+                                rows={10}
+                                value={editContent}
+                                onChange={(e) => setEditContent(e.target.value)}
+                            />)}
+                        <div className="post-footer">
 
                         <div className="post-reactions">
                             <button
@@ -277,6 +350,23 @@ export default function PostDetailPage() {
                                 <span style={{ color: "#666" }}>조회 {views}</span>
                             )}
                         </div>
+                        {/* ✅ 우측 하단 액션: 내 글일 때만 표시 */}
+                        {isMine && (
+                             <div className="post-actions">
+                                   {!isEditing ? (
+                                     <>
+                                         <button type="button" className="post-action-link" onClick={beginEdit}>수정</button>
+                                         <button type="button" className="post-action-link danger" onClick={removePost}>삭제</button>
+                                         </>
+                                   ) : (
+                                     <>
+                                         <button type="button" className="post-action-link" onClick={saveEditPost}>저장</button>
+                                         <button type="button" className="post-action-link" onClick={cancelEditPost}>취소</button>
+                                         </>
+                                   )}
+                                 </div>
+                           )}
+                            </div>
                     </div>
 
                     <div className="comment-section">

@@ -108,24 +108,7 @@ export default function InfoPage() {
                                     </div>
                                     <div className="info-right">
                                         작성자: {info.author}
-                                        <div className="actions">
-                                            <span
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    alert("수정!");
-                                                }}
-                                            >
-                                                수정
-                                            </span>
-                                            <span
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    alert("삭제!");
-                                                }}
-                                            >
-                                                삭제
-                                            </span>
-                                        </div>
+
                                     </div>
                                 </div>
                             ))

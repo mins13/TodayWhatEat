@@ -88,14 +88,16 @@ public class CommunityController {
         return Map.of("id", id);
     }
 
+    @PutMapping("/{board}/{id}")
     @PatchMapping("/{board}/{id}")
     @PreAuthorize("isAuthenticated()")
     public void update(@PathVariable String board, @PathVariable Long id,
                        @RequestBody UpdatePostReq req, Authentication auth) {
         validateBoard(board);
         String username = requireUsername(auth);
-        svc.updateByUsername(board, id, username, req);       // ← 신규 메서드
+        svc.updateByUsername(board, id, username, req);
     }
+
 
     @DeleteMapping("/{board}/{id}")
     @PreAuthorize("isAuthenticated()")
@@ -147,5 +149,6 @@ public class CommunityController {
         String username = requireUsername(auth);
         svc.deleteCommentByUsername(commentId, username);              // ← 신규 메서드
     }
+
 
 }
