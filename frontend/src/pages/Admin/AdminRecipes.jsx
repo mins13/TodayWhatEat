@@ -3,64 +3,170 @@ import { useEffect, useState } from "react";
 import {
     fetchAdminRecipes, fetchRecipeDetail,
     createRecipe, updateRecipe, deleteRecipe,
-    fetchIngredients, saveIngredients
+    fetchIngredients, saveIngredients,
+    fetchTags, saveTags
 } from "../../api/adminRecipeMgmtApi";
 
 export default function AdminRecipes(){
-    const [query, setQuery] = useState("");
-    const [page, setPage]   = useState(0);
-    const [data, setData]   = useState(null);
-    const [editing, setEditing] = useState(null); // {id,title,image}
+    const [query, setQuery]   = useState("");
+    const [page, setPage]     = useState(0);
+    const [data, setData]     = useState(null);
+
+    // 추가 모드: { id:null, title:"", image:"", ingredients:[{name,amount}], steps:[""] }
+    // 수정 모드: { id:number, title,image, steps:["", ...] }
+    const [editing, setEditing] = useState(null);
+
     const [ingModal, setIngModal] = useState({ open:false, recipeId:null, list:[] });
+    const [tagModal, setTagModal] = useState({ open:false, recipeId:null, tags:[], input:"" });
 
-    const load = async (p=page) => {
-        const res = await fetchAdminRecipes({page:p,size:10,query});
-        setData(res);
+    const load = async (p = page) => {
+        const res = await fetchAdminRecipes({ page: p, size: 10, query });
+
+        // 응답 표준화: items/total 로 맞춘다 (둘 다 지원)
+        const items = res?.items ?? res?.content ?? [];
+        const total = res?.total ?? res?.totalElements ?? res?.totalCount ?? 0;
+
+        setData({ items, total });
+        setPage(p);
     };
-    useEffect(()=>{ load(0); },[]);
+    useEffect(()=>{ load(0).catch(console.error); },[]);
 
-    const onSearch = async()=>{ setPage(0); await load(0); };
+    const onSearch = async()=>{ await load(0); };
 
-    const openEdit = async(id)=>{
-        if(!id){ setEditing({id:null,title:"",image:""}); return; }
+    // ------- 레시피 추가/수정 열기 -------
+    const openEdit = async (id) => {
+        if (!id) {
+            setEditing({
+                id: null,
+                title: "",
+                image: "",
+                ingredients: [{ name: "", amount: "" }],
+                steps: [""],
+            });
+            return;
+        }
         const d = await fetchRecipeDetail(id);
-        setEditing({ id:d.id, title:d.title, image:d.image||"" });
+        const rawSteps = d.steps ?? [];
+        const steps = rawSteps
+            .map(s => typeof s === "string" ? s : (s?.description ?? ""))
+            .filter(s => s !== null && s !== undefined)
+            .map(s => String(s));
+
+        setEditing({
+            id: d.id,
+            title: d.title ?? "",
+            image: d.image ?? "",
+            steps: steps.length ? steps : [""],
+        });
     };
+
+    // ------- 레시피 저장 -------
     const saveEdit = async()=>{
         if(!editing.title?.trim()) return alert("제목은 필수입니다.");
-        if(editing.id) await updateRecipe(editing.id, { title: editing.title, image: editing.image });
-        else await createRecipe({ title: editing.title, image: editing.image });
-        setEditing(null); await load(0);
+        const title = editing.title.trim();
+        const image = (editing.image ?? "").trim();
+
+        if(editing.id){ // 수정
+            const steps = (editing.steps ?? []).map(s=>(s??"").trim()).filter(s=>s.length>0);
+            if(steps.length===0) return alert("단계를 1개 이상 입력하세요.");
+            await updateRecipe(editing.id, { title, image, steps });
+        }else{ // 추가
+            const steps = (editing.steps ?? []).map(s=>(s??"").trim()).filter(s=>s.length>0);
+            if(steps.length===0) return alert("단계를 1개 이상 입력하세요.");
+
+            const ingredients = (editing.ingredients ?? [])
+                .map(g=>({ name:(g.name??"").trim(), amount:(g.amount??"").trim() }))
+                .filter(g=> g.name.length>0);
+
+            if(ingredients.length===0) return alert("재료를 1개 이상 입력하세요.");
+
+            await createRecipe({ title, image, ingredients, steps });
+        }
+        setEditing(null);
+        await load(0);
     };
+
     const remove = async(id)=>{
         if(!window.confirm("정말 삭제할까요?")) return;
         await deleteRecipe(id); await load();
     };
 
+    // ------- 재료 모달(수정 전용) -------
     const openIngredients = async(recipeId)=>{
         const list = await fetchIngredients(recipeId);
         setIngModal({ open:true, recipeId, list });
     };
     const addIng = ()=>{
-        setIngModal(m=>({...m, list:[...m.list, { id:null, name:"", quantity:"", unit:"", sortOrder: (m.list?.length||0)}]}));
+        setIngModal(m=>({...m, list:[...m.list, { id:null, name:"", amount:"" }]}));
     };
     const saveIng = async()=>{
         await saveIngredients(ingModal.recipeId, ingModal.list);
         setIngModal({ open:false, recipeId:null, list:[] });
     };
 
+    // ------- 태그 모달 -------
+    const openTags = async(recipeId)=>{
+        const tags = await fetchTags(recipeId);
+        setTagModal({ open:true, recipeId, tags, input:"" });
+    };
+    const addTag = ()=>{
+        const v = tagModal.input.trim();
+        if(!v) return;
+        if(tagModal.tags.includes(v)) return setTagModal(m=>({...m, input:""}));
+        setTagModal(m=>({...m, tags:[...m.tags, v], input:""}));
+    };
+    const removeTag = (t)=> setTagModal(m=>({...m, tags: m.tags.filter(x=>x!==t)}));
+    const saveTagList = async()=>{
+        await saveTags(tagModal.recipeId, tagModal.tags);
+        setTagModal({ open:false, recipeId:null, tags:[], input:"" });
+    };
+
+    // ------- 추가 모드에서 재료/단계 행 제어 -------
+    const addEditingIngredient = ()=>{
+        if(!editing || editing.id) return;
+        setEditing(e=>({...e, ingredients:[...(e.ingredients||[]), {name:"", amount:""}]}));
+    };
+    const delEditingIngredient = (idx)=>{
+        if(!editing || editing.id) return;
+        setEditing(e=>({...e, ingredients:(e.ingredients||[]).filter((_,i)=>i!==idx)}));
+    };
+
+    const totalPages = data ? Math.max(1, Math.ceil(data.total / 10)) : 1;
+    const current = page + 1; // 1-based for UI
+
+    const goto = (p) => { if (p<0 || p>=totalPages) return; setPage(p); load(p); };
+    const pageNums = () => {
+        const max = totalPages;
+        const cur = current;
+        const window = 5; // 한 번에 보여줄 숫자 개수
+        const start = Math.max(1, cur - Math.floor(window/2));
+        const end = Math.min(max, start + window - 1);
+        const items = [];
+        for (let i=start; i<=end; i++) items.push(i);
+        return items;
+    };
+
     return (
         <div className="admin-page">
             <h2>레시피 관리</h2>
 
-            <div className="toolbar" style={{display:"flex", gap:8, margin:"12px 0"}}>
+            <div className="search-row" style={{display:"flex", gap:10, alignItems:"center", margin:"14px 0 18px"}}>
                 <input
+                    className="search-input"
+                    style={{flex:"0 1 360px", height:40, border:"1px solid #e5e7eb", borderRadius:8, padding:"0 12px"}}
                     placeholder="제목 검색"
                     value={query}
                     onChange={e=>setQuery(e.target.value)}
                     onKeyDown={e=>e.key==='Enter' && onSearch()}
                 />
-                <button onClick={onSearch}>검색</button>
+                <button
+                    className="btn primary"
+                    style={{height:40, padding:"0 16px"}}
+                    onClick={onSearch}
+                >
+                    검색
+                </button>
+
                 <div style={{flex:1}} />
                 <button className="primary" onClick={()=>openEdit(null)}>+ 레시피 추가</button>
             </div>
@@ -71,16 +177,17 @@ export default function AdminRecipes(){
                     <tr><th>ID</th><th>이미지</th><th>제목</th><th>좋아요</th><th>조회수</th><th>액션</th></tr>
                     </thead>
                     <tbody>
-                    {data.content.map(r=>(
+                    {data.items.map(r => (
                         <tr key={r.id}>
                             <td>{r.id}</td>
                             <td>{r.image ? <img src={r.image} alt="" style={{width:64,height:42,objectFit:"cover",borderRadius:6}}/> : "-"}</td>
                             <td>{r.title}</td>
                             <td>{r.likesCount}</td>
                             <td>{r.viewCount}</td>
-                            <td style={{display:"flex", gap:8}}>
+                            <td style={{display:"flex", gap:8, flexWrap:"wrap"}}>
                                 <button onClick={()=>openEdit(r.id)}>수정</button>
                                 <button onClick={()=>openIngredients(r.id)}>재료편집</button>
+                                <button onClick={()=>openTags(r.id)}>태그편집</button>
                                 <button className="danger" onClick={()=>remove(r.id)}>삭제</button>
                             </td>
                         </tr>
@@ -89,17 +196,117 @@ export default function AdminRecipes(){
                 </table>
             )}
 
-            {/* 수정/추가 모달 */}
+            {data && totalPages > 1 && (
+                <div style={{display:"flex", justifyContent:"center", margin:"18px 0 6px"}}>
+                    <div style={{display:"flex", gap:8}}>
+                        <button className="btn ghost" disabled={page===0} onClick={()=>goto(0)}>{'«'}</button>
+                        <button className="btn ghost" disabled={page===0} onClick={()=>goto(page-1)}>{'‹'}</button>
+
+                        {pageNums().map(n=>(
+                            <button
+                                key={n}
+                                className="btn ghost"
+                                onClick={()=>goto(n-1)}
+                                style={{
+                                    background:n===current ? "#1d4ed8" : "white",
+                                    color:n===current ? "white" : "inherit",
+                                    minWidth:36
+                                }}
+                            >
+                                {n}
+                            </button>
+                        ))}
+
+                        <button className="btn ghost" disabled={page>=totalPages-1} onClick={()=>goto(page+1)}>{'›'}</button>
+                        <button className="btn ghost" disabled={page>=totalPages-1} onClick={()=>goto(totalPages-1)}>{'»'}</button>
+                    </div>
+                </div>
+            )}
+
+            {/* 레시피 수정/추가 모달 */}
             {editing && (
                 <div className="modal">
                     <div className="modal-card">
                         <h3>{editing.id ? "레시피 수정" : "레시피 추가"}</h3>
-                        <label>제목
-                            <input value={editing.title} onChange={e=>setEditing({...editing,title:e.target.value})}/>
-                        </label>
-                        <label>이미지 URL
-                            <input value={editing.image||""} onChange={e=>setEditing({...editing,image:e.target.value})}/>
-                        </label>
+
+                        {/* 스크롤 영역 */}
+                        <div className="modal-body">
+                            <label>제목
+                                <input
+                                    value={editing.title}
+                                    onChange={e=>setEditing({...editing,title:e.target.value})}
+                                />
+                            </label>
+
+                            <label>이미지 URL
+                                <input
+                                    value={editing.image||""}
+                                    onChange={e=>setEditing({...editing,image:e.target.value})}
+                                />
+                            </label>
+
+                            {/* ✅ 추가 모드에서만 재료 함께 작성 */}
+                            {!editing.id && (
+                                <div>
+                                    <div style={{display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:6}}>
+                                        <b>재료</b>
+                                        <button onClick={addEditingIngredient}>+ 재료 추가</button>
+                                    </div>
+                                    {(editing.ingredients||[]).map((g, idx)=>(
+                                        <div key={idx} style={{display:"grid", gridTemplateColumns:"1fr 1fr 80px", gap:8, marginBottom:8}}>
+                                            <input
+                                                placeholder="이름"
+                                                value={g.name}
+                                                onChange={e=>{
+                                                    const arr=[...(editing.ingredients||[])];
+                                                    arr[idx] = {...arr[idx], name:e.target.value};
+                                                    setEditing({...editing, ingredients:arr});
+                                                }}
+                                            />
+                                            <input
+                                                placeholder="수량 (예: 1컵 / 300g)"
+                                                value={g.amount||""}
+                                                onChange={e=>{
+                                                    const arr=[...(editing.ingredients||[])];
+                                                    arr[idx] = {...arr[idx], amount:e.target.value};
+                                                    setEditing({...editing, ingredients:arr});
+                                                }}
+                                            />
+                                            <button className="danger" onClick={()=>delEditingIngredient(idx)}>삭제</button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
+                            {/* 단계 편집 */}
+                            <div>
+                                <div style={{display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:6}}>
+                                    <b>레시피(단계)</b>
+                                    <button onClick={()=>setEditing(ed=>({...ed,steps:[...(ed.steps||[]), ""]}))}>+ 단계 추가</button>
+                                </div>
+                                {(editing.steps||[]).map((t,idx)=>(
+                                    <div key={idx} style={{display:"grid", gridTemplateColumns:"1fr 80px", gap:8, marginBottom:8}}>
+                    <textarea
+                        placeholder={`단계 ${idx+1} 내용`}
+                        rows={3}
+                        value={t}
+                        onChange={e=>{
+                            const arr=[...(editing.steps||[])];
+                            arr[idx]=e.target.value;
+                            setEditing({...editing, steps:arr});
+                        }}
+                    />
+                                        <button className="danger" onClick={()=>{
+                                            const arr=[...(editing.steps||[])];
+                                            arr.splice(idx,1);
+                                            setEditing({...editing, steps:arr});
+                                        }}>삭제</button>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* 하단 버튼바 */}
                         <div className="actions">
                             <button onClick={()=>setEditing(null)}>취소</button>
                             <button className="primary" onClick={saveEdit}>저장</button>
@@ -108,21 +315,20 @@ export default function AdminRecipes(){
                 </div>
             )}
 
-            {/* 재료 모달 */}
+            {/* 재료 모달 (수정 전용) */}
             {ingModal.open && (
                 <div className="modal">
                     <div className="modal-card" style={{maxWidth:640}}>
                         <h3>재료 편집</h3>
                         {ingModal.list.map((g, idx)=>(
-                            <div key={idx} style={{display:"grid",gridTemplateColumns:"2fr 1fr 1fr 80px",gap:8,marginBottom:8}}>
+                            <div key={idx} style={{display:"grid",gridTemplateColumns:"2fr 2fr 80px",gap:8,marginBottom:8}}>
                                 <input placeholder="이름" value={g.name}
                                        onChange={e=>{const x=[...ingModal.list];x[idx].name=e.target.value;setIngModal(m=>({...m,list:x}));}}/>
-                                <input placeholder="수량" value={g.quantity||""}
-                                       onChange={e=>{const x=[...ingModal.list];x[idx].quantity=e.target.value;setIngModal(m=>({...m,list:x}));}}/>
-                                <input placeholder="단위" value={g.unit||""}
-                                       onChange={e=>{const x=[...ingModal.list];x[idx].unit=e.target.value;setIngModal(m=>({...m,list:x}));}}/>
-                                <input placeholder="정렬" value={g.sortOrder??idx} type="number"
-                                       onChange={e=>{const x=[...ingModal.list];x[idx].sortOrder=Number(e.target.value);setIngModal(m=>({...m,list:x}));}}/>
+                                <input placeholder="수량 (예: 1컵 / 300g)" value={g.amount||""}
+                                       onChange={e=>{const x=[...ingModal.list];x[idx].amount=e.target.value;setIngModal(m=>({...m,list:x}));}}/>
+                                <button className="danger" onClick={()=>{
+                                    const x=[...ingModal.list]; x.splice(idx,1); setIngModal(m=>({...m,list:x}));
+                                }}>삭제</button>
                             </div>
                         ))}
                         <div className="actions" style={{justifyContent:"space-between"}}>
@@ -131,6 +337,37 @@ export default function AdminRecipes(){
                                 <button onClick={()=>setIngModal({open:false, recipeId:null, list:[]})}>닫기</button>
                                 <button className="primary" onClick={saveIng}>저장</button>
                             </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* 태그 모달 */}
+            {tagModal.open && (
+                <div className="modal">
+                    <div className="modal-card" style={{maxWidth:520}}>
+                        <h3>태그 편집</h3>
+                        <div style={{display:"flex", gap:8}}>
+                            <input
+                                placeholder="태그 입력 후 추가"
+                                value={tagModal.input}
+                                onChange={e=>setTagModal(m=>({...m, input:e.target.value}))}
+                                onKeyDown={e=>e.key==='Enter' && addTag()}
+                            />
+                            <button onClick={addTag}>추가</button>
+                        </div>
+                        <div style={{marginTop:10, display:"flex", gap:8, flexWrap:"wrap"}}>
+                            {tagModal.tags.map(t=>(
+                                <span key={t} className="badge-soft" style={{display:"inline-flex", alignItems:"center", gap:6}}>
+                  #{t}
+                                    <button className="link danger" onClick={()=>removeTag(t)}>x</button>
+                </span>
+                            ))}
+                            {tagModal.tags.length===0 && <div className="muted">태그가 없습니다.</div>}
+                        </div>
+                        <div className="actions" style={{marginTop:12}}>
+                            <button onClick={()=>setTagModal({open:false, recipeId:null, tags:[], input:""})}>닫기</button>
+                            <button className="primary" onClick={saveTagList}>저장</button>
                         </div>
                     </div>
                 </div>

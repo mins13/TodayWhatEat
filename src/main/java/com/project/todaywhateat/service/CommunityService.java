@@ -1,3 +1,4 @@
+// src/main/java/com/project/todaywhateat/service/CommunityService.java
 package com.project.todaywhateat.service;
 
 import com.project.todaywhateat.Specification.PostSpecs;
@@ -13,10 +14,7 @@ import com.project.todaywhateat.repository.Community.PostLikeRepo;
 import com.project.todaywhateat.repository.Community.PostRepo;
 import com.project.todaywhateat.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.*;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -71,6 +69,22 @@ public class CommunityService {
     /* -------------------------- 조회계열 -------------------------- */
 
     public PageResponse<PostListDto> list(String boardCode, String q, String sort, int page, int size){
+        // ✅ 공지 게시판은 pinned 우선 정렬(검색 시에도), CLOB 안전 쿼리를 쓰기 위해 레포 메서드 직접 사용
+        if ("notice".equalsIgnoreCase(boardCode)) {
+            int p = Math.max(0, page - 1);
+            Pageable pageable = PageRequest.of(p, size); // 정렬은 쿼리/레포에서 처리
+
+            Page<Post> pg = (q == null || q.isBlank())
+                    ? postRepo.findByBoard_CodeOrderByPinnedDescIdDesc("notice", pageable)
+                    : postRepo.searchByBoardAndTitleOrContent("notice", q, pageable);
+
+            return new PageResponse<>(
+                    pg.getContent().stream().map(PostListDto::from).toList(),
+                    pg.getTotalElements()
+            );
+        }
+
+        // ✅ 일반 게시판: 기존 스펙/정렬 유지
         Board board = boardRepo.findByCode(boardCode).orElseThrow(() -> notFound("board"));
         Pageable pageable = PageRequest.of(Math.max(0, page - 1), size, sortOf(sort));
         Specification<Post> spec = Specification.where(PostSpecs.inBoard(board))
@@ -99,7 +113,7 @@ public class CommunityService {
 
         // 좋아요 여부
         Boolean liked = (me != null)
-                ? likeRepo.existsByPost_IdAndUserId(post.getId(), me) // ✅ 여러분 프로젝트에 이미 쓰던 네이밍
+                ? likeRepo.existsByPost_IdAndUserId(post.getId(), me)
                 : null;
 
         // mine 계산: 작성자이거나 관리자
@@ -110,7 +124,7 @@ public class CommunityService {
 
         Boolean mine = (me != null) ? (isOwner || isAdmin) : false;
 
-        return PostDetailDto.from(post, liked, mine); // ✅ PostDetailDto 오버로드( liked, mine ) 버전 호출
+        return PostDetailDto.from(post, liked, mine);
     }
 
     @Transactional(readOnly = true)
@@ -131,10 +145,9 @@ public class CommunityService {
         );
     }
 
-
     /** 좋아요 총 개수(컨트롤러에서 응답으로 내려줄 때 사용) */
     public long likeCount(Long postId) {
-        return likeRepo.countByPost_Id(postId); // ✅ 연관필드 중첩경로
+        return likeRepo.countByPost_Id(postId);
     }
 
     /* -------------------------- username 엔트리(트랜잭션 진입점) -------------------------- */
@@ -203,9 +216,9 @@ public class CommunityService {
 
     private boolean toggleLikeInternal(String boardCode, Long id, Long userId){
         Post p = findPost(boardCode, id);
-        boolean liked = likeRepo.existsByPost_IdAndUserId(p.getId(), userId); // ✅ 중첩경로
+        boolean liked = likeRepo.existsByPost_IdAndUserId(p.getId(), userId);
         if (liked) {
-            likeRepo.deleteByPost_IdAndUserId(p.getId(), userId);            // ✅ 중첩경로
+            likeRepo.deleteByPost_IdAndUserId(p.getId(), userId);
             p.setLikesCount(Math.max(0, p.getLikesCount() - 1));
             return false;
         } else {

@@ -103,12 +103,28 @@ export default function NoticePage() {
                                     onClick={() => navigate(`/community/notice/${notice.id}`)}
                                 >
                                     <div className="notice-left">
-                                        <div className="notice-title">{notice.title}</div>
+                                        <div className="notice-title">
+                                            {notice.pinned && (
+                                                <span
+                                                    style={{
+                                                        display: "inline-block",
+                                                        marginRight: 8,
+                                                        padding: "2px 8px",
+                                                        borderRadius: 12,
+                                                        fontSize: 12,
+                                                        background: "#fff3bf",
+                                                        border: "1px solid #ffd43b",
+                                                    }}
+                                                >
+                고정
+              </span>
+                                            )}
+                                            {notice.title}
+                                        </div>
                                         <div className="notice-content">{notice.content}</div>
                                     </div>
                                     <div className="notice-right">
-                                        작성자: {notice.author}
-
+                                        작성자: {notice.authorName ?? notice.author ?? "관리자"}
                                     </div>
                                 </div>
                             ))

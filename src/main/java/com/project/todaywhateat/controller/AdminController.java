@@ -2,9 +2,12 @@ package com.project.todaywhateat.controller;
 
 import com.project.todaywhateat.domain.Community.Post;
 import com.project.todaywhateat.domain.User;
+import com.project.todaywhateat.dto.Community.CommentDto;
 import com.project.todaywhateat.dto.Community.PageResponse;
+import com.project.todaywhateat.dto.admin.AdminPostDetailDto;
 import com.project.todaywhateat.dto.admin.AdminPostDto;
 import com.project.todaywhateat.dto.admin.AdminUserDto;
+import com.project.todaywhateat.repository.Community.CommentRepo;
 import com.project.todaywhateat.repository.Community.PostRepo;
 import com.project.todaywhateat.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +28,7 @@ public class AdminController {
 
     private final UserRepository userRepo;
     private final PostRepo postRepo;
+    private final CommentRepo commentRepo;
 
     @GetMapping("/summary")
     public Map<String,Object> summary() {
@@ -73,4 +77,35 @@ public class AdminController {
     public void deletePost(@PathVariable Long id) {
         postRepo.deleteById(id);
     }
+
+    /** 게시글 단건 (관리자 프리뷰용) */
+    @GetMapping("/posts/{id}")
+    public AdminPostDetailDto postDetail(@PathVariable Long id) {
+        Post p = postRepo.findById(id).orElseThrow();
+        return AdminPostDetailDto.from(p);
+    }
+
+    /** 게시글 댓글 목록 (관리자 프리뷰용) */
+    @GetMapping("/posts/{id}/comments")
+    public PageResponse<CommentDto> postComments(@PathVariable Long id,
+                                                 @RequestParam(defaultValue = "1") int page,
+                                                 @RequestParam(defaultValue = "50") int size) {
+        var pg = commentRepo.findByPostIdOrderByCreatedAtDesc(
+                id, PageRequest.of(Math.max(0, page-1), size)
+        );
+        return new PageResponse<>(
+                pg.getContent().stream()
+                        .map(c -> CommentDto.from(c, false)) // 관리자 화면이니 mine 필요 없음
+                        .toList(),
+                pg.getTotalElements()
+        );
+    }
+
+    /** 댓글 삭제 (관리자) */
+    @DeleteMapping("/posts/{postId}/comments/{commentId}")
+    public void deleteComment(@PathVariable Long postId, @PathVariable Long commentId) {
+        // postId 검증(옵션): comment가 해당 post 의 것인지 확인하고 삭제해도 됨
+        commentRepo.deleteById(commentId);
+    }
 }
+

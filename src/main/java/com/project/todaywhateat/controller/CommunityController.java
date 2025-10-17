@@ -1,6 +1,7 @@
 package com.project.todaywhateat.controller;
 
 import com.project.todaywhateat.dto.Community.*;
+import com.project.todaywhateat.repository.Community.PostLikeRepo;
 import com.project.todaywhateat.service.CommunityService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -8,7 +9,6 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
-import com.project.todaywhateat.repository.Community.PostLikeRepo;
 
 import java.util.Map;
 import java.util.Set;
@@ -20,6 +20,7 @@ public class CommunityController {
     private final CommunityService svc;
     private final PostLikeRepo likeRepo;
 
+
     private static final Set<String> ALLOWED_BOARDS = Set.of("free","recipe","info","notice");
 
     /* ---------- 공용 유틸 ---------- */
@@ -28,6 +29,7 @@ public class CommunityController {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "유효하지 않은 게시판입니다.");
         }
     }
+
 
     /**
      * Authentication에서 안전하게 userId 추출.

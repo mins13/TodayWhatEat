@@ -1,19 +1,23 @@
-// src/api/adminNoticeApi.js
-import axios from "axios";
-const auth = () => ({ Authorization: `Bearer ${localStorage.getItem("token")}` });
+import { http } from "./http";
 
-export async function fetchNotices({page=0,size=10,query=""}){
-    const { data } = await axios.get(`/api/admin/notices`, { params:{page,size,query}, headers: auth() });
-    return data; // Page<NoticeDto>
+export async function fetchNotices({ page = 0, size = 10, query = "" }) {
+    return (await http.get(`/api/admin/notices`, { params: { page, size, query } })).data;
 }
-export async function createNotice(payload){
-    const { data } = await axios.post(`/api/admin/notices`, payload, { headers: auth() });
-    return data;
+
+export async function fetchNoticeDetail(id) {
+    return (await http.get(`/api/admin/notices/${id}`)).data;
 }
-export async function updateNotice(id, payload){
-    const { data } = await axios.put(`/api/admin/notices/${id}`, payload, { headers: auth() });
-    return data;
+
+export async function createNotice(payload) {
+    // payload: { title, content, pinned }
+    return (await http.post(`/api/admin/notices`, payload)).data;
 }
-export async function deleteNotice(id){
-    await axios.delete(`/api/admin/notices/${id}`, { headers: auth() });
+
+export async function updateNotice(id, payload) {
+    // payload: { title, content, pinned }
+    return (await http.put(`/api/admin/notices/${id}`, payload)).data;
+}
+
+export async function deleteNotice(id) {
+    return (await http.delete(`/api/admin/notices/${id}`)).data;
 }

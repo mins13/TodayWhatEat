@@ -103,3 +103,31 @@
 }
 
 .admin-page h2 { margin: 6px 0 12px; }
+
+/* === modal 크기 & 스크롤 공통 === */
+.modal-card{
+    max-width: 720px;         /* 가로는 적당히 고정 */
+    max-height: 80vh;         /* 화면 80%까지만 높이 사용 */
+    display: flex;
+    flex-direction: column;   /* 아래 .modal-body, .actions 배치 위해 */
+    overflow: hidden;         /* 카드 자체는 넘치지 않게 */
+}
+
+/* 본문 영역은 스크롤 */
+.modal-body{
+    overflow-y: auto;
+    padding-right: 6px;       /* 스크롤바 여백 */
+    margin: 10px 0 12px;
+    gap: 8px;
+    display: flex;
+    flex-direction: column;
+}
+
+/* 하단 버튼바는 고정(스크롤 안 타게) */
+.modal-card .actions{
+    position: sticky;
+    bottom: 0;
+    background: #fff;
+    padding-top: 10px;
+    border-top: 1px solid #e5e7eb;
+}
