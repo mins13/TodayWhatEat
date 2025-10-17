@@ -1,51 +1,85 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import RecipeSidebar from "../../components/Recipe/RecipeSidebar";
-import { createDraft, updateDraft, getDraft, uploadDraftImage } from "../../api/recipeDraftApi";
+import { uploadDraftImage } from "../../api/recipeDraftApi";
+import { createMyRecipe, updateMyRecipe, getMyRecipe } from "../../api/myRecipeApi";
 import "./MyRecipeEditorPage.css";
+import useRequireAuth from "../../hooks/useRequireAuth";
 
-export default function MyRecipeEditorPage(){
-    const { draftId } = useParams();
+/** 인증 Wrapper: 훅 호출 순서를 항상 동일하게 유지 */
+export default function MyRecipeEditorPage() {
+    const ready = useRequireAuth();
+    if (!ready) return null;
+    return <MyRecipeEditorPageInner />;
+}
+
+/** 실제 페이지 로직 */
+function MyRecipeEditorPageInner() {
+    const { draftId: recipeId } = useParams();
     const navigate = useNavigate();
 
-    const empty = { title:"", imageUrl:"", ingredients:[], steps:[] };
+    const empty = { title: "", imageUrl: "", ingredients: [], steps: [] };
     const [form, setForm] = useState(empty);
     const [imageFile, setImageFile] = useState(null);
     const [previewUrl, setPreviewUrl] = useState("");
-    const [loading, setLoading] = useState(!!draftId);
+    const [loading, setLoading] = useState(!!recipeId);
 
-    useEffect(()=> {
-        if(!draftId){ setPreviewUrl(""); return; }
-        (async()=>{
-            try{
-                const d = await getDraft(draftId);
+    useEffect(() => {
+        if (!recipeId) {
+            setPreviewUrl("");
+            return;
+        }
+        (async () => {
+            try {
+                const d = await getMyRecipe(recipeId);
                 setForm({
                     title: d.title || "",
                     imageUrl: d.imageUrl || "",
-                    ingredients: (d.ingredients||[]).map((g,i)=>({
-                        name:g.name||"", quantity:g.quantity||"", unit:g.unit||"", sortOrder:i+1
+                    ingredients: (d.ingredients || []).map((g, i) => ({
+                        name: g.name || "",
+                        quantity: g.quantity || "",
+                        unit: g.unit || "",
+                        sortOrder: i + 1,
                     })),
-                    steps: (d.steps||[]).map((s,i)=>({ content:s.content||"", sortOrder:i+1 })),
+                    steps: (d.steps || []).map((s, i) => ({
+                        content: s.content || "",
+                        sortOrder: i + 1,
+                    })),
                 });
                 setPreviewUrl(d.imageUrl || "");
-            } finally { setLoading(false); }
+            } finally {
+                setLoading(false);
+            }
         })();
-    }, [draftId]);
+    }, [recipeId]);
 
-    const setField = (k,v)=> setForm(f=>({...f,[k]:v}));
-    const addIng  = ()=> setForm(f=>({...f, ingredients:[...f.ingredients, {name:"",quantity:"",unit:"",sortOrder:f.ingredients.length+1}]}));
-    const delIng  = (i)=> setForm(f=>({...f, ingredients:f.ingredients.filter((_,idx)=>idx!==i)}));
-    const addStep = ()=> setForm(f=>({...f, steps:[...f.steps, {content:"",sortOrder:f.steps.length+1}]}));
-    const delStep = (i)=> setForm(f=>({...f, steps:f.steps.filter((_,idx)=>idx!==i)}));
+    const setField = (k, v) => setForm((f) => ({ ...f, [k]: v }));
+    const addIng = () =>
+        setForm((f) => ({
+            ...f,
+            ingredients: [
+                ...f.ingredients,
+                { name: "", quantity: "", unit: "", sortOrder: f.ingredients.length + 1 },
+            ],
+        }));
+    const delIng = (i) =>
+        setForm((f) => ({ ...f, ingredients: f.ingredients.filter((_, idx) => idx !== i) }));
+    const addStep = () =>
+        setForm((f) => ({
+            ...f,
+            steps: [...f.steps, { content: "", sortOrder: f.steps.length + 1 }],
+        }));
+    const delStep = (i) =>
+        setForm((f) => ({ ...f, steps: f.steps.filter((_, idx) => idx !== i) }));
 
-    const onChangeImageUrl = (v)=>{
+    const onChangeImageUrl = (v) => {
         setField("imageUrl", v);
-        if(!imageFile) setPreviewUrl(v || "");
+        if (!imageFile) setPreviewUrl(v || "");
     };
 
-    const onPickFile = (file)=>{
+    const onPickFile = (file) => {
         setImageFile(file || null);
-        if(file){
+        if (file) {
             const url = URL.createObjectURL(file);
             setPreviewUrl(url);
         } else {
@@ -53,44 +87,49 @@ export default function MyRecipeEditorPage(){
         }
     };
 
-    const buildPayload = ()=>({
+    const buildPayload = () => ({
         title: form.title.trim(),
         imageUrl: form.imageUrl.trim(), // 파일 업로드 시 save()에서 덮어씀
-        ingredients: form.ingredients.map((g,i)=>({ ...g, sortOrder:i+1 })),
-        steps: form.steps.map((s,i)=>({ ...s, sortOrder:i+1 })),
+        ingredients: form.ingredients.map((g, i) => ({ ...g, sortOrder: i + 1 })),
+        steps: form.steps.map((s, i) => ({ ...s, sortOrder: i + 1 })),
     });
 
-    const save = async ()=>{
-        if(!form.title.trim()){ alert("제목을 입력하세요."); return; }
+    const save = async () => {
+        if (!form.title.trim()) {
+            alert("제목을 입력하세요.");
+            return;
+        }
         let payload = buildPayload();
 
-        if(imageFile){
-            try{
+        if (imageFile) {
+            try {
                 const url = await uploadDraftImage(imageFile);
-                if(url) payload.imageUrl = url;
-            }catch(e){
+                if (url) payload.imageUrl = url;
+            } catch (e) {
                 console.error(e);
                 alert("이미지 업로드에 실패했어요.");
                 return;
             }
         }
 
-        if(draftId){
-            await updateDraft(draftId, payload);
-            alert("수정 저장 완료");
-        }else{
-            await createDraft(payload);
-            alert("초안 저장 완료");
+        if (recipeId) {
+            await updateMyRecipe(recipeId, payload);
+            alert("저장 완료");
+        } else {
+            await createMyRecipe(payload);
+            alert("저장 완료");
         }
         navigate("/recipe/my");
     };
 
-    if(loading){
+    if (loading) {
         return (
             <div className="main-container">
                 <div className="community-wrapper">
-                    <div className="left-panel"><RecipeSidebar/></div>
-                    <div className="right-panel">로딩...</div>
+                    <div className="left-panel">
+                        <RecipeSidebar />
+                    </div>
+                    <div className="right-panel my-editor">로딩...</div>
                 </div>
             </div>
         );
@@ -99,29 +138,40 @@ export default function MyRecipeEditorPage(){
     return (
         <div className="main-container">
             <div className="community-wrapper">
-                <div className="left-panel"><RecipeSidebar/></div>
+                <div className="left-panel">
+                    <RecipeSidebar />
+                </div>
 
-                <div className="right-panel">
+                <div className="right-panel my-editor">
                     <div className="write-head">
-                        <h2 className="main-recipe-title">{draftId ? "레시피 수정" : "레시피 작성"}</h2>
+                        <h2 className="main-recipe-title">{recipeId ? "레시피 수정" : "레시피 작성"}</h2>
                         <div className="spacer" />
-                        <button className="btn" onClick={()=>navigate("/recipe/my")}>목록으로</button>
-                        <button className="btn primary" onClick={save}>초안 저장</button>
+                        <button className="btn" onClick={() => navigate("/recipe/my")}>
+                            목록으로
+                        </button>
+                        <button className="btn primary" onClick={save}>
+                            저장
+                        </button>
                     </div>
 
                     <div className="write-card">
                         <div className="grid">
                             {/* 제목 */}
-                            <label>제목
-                                <input value={form.title} onChange={e=>setField("title", e.target.value)} />
+                            <label>
+                                제목
+                                <input
+                                    value={form.title}
+                                    onChange={(e) => setField("title", e.target.value)}
+                                />
                             </label>
 
-                            {/* 이미지 URL + 파일 업로드 (같은 줄) */}
-                            <label>대표이미지 URL(선택)
+                            {/* 이미지 URL + 파일 업로드 */}
+                            <label>
+                                대표이미지 URL(선택)
                                 <div className="img-row">
                                     <input
                                         value={form.imageUrl}
-                                        onChange={e=>onChangeImageUrl(e.target.value)}
+                                        onChange={(e) => onChangeImageUrl(e.target.value)}
                                         placeholder="https://…"
                                     />
                                     <label className="btn file-btn">
@@ -129,13 +179,15 @@ export default function MyRecipeEditorPage(){
                                         <input
                                             type="file"
                                             accept="image/*"
-                                            onChange={(e)=>onPickFile(e.target.files?.[0] || null)}
+                                            onChange={(e) => onPickFile(e.target.files?.[0] || null)}
                                             hidden
                                         />
                                     </label>
                                 </div>
                                 {previewUrl && (
-                                    <div className="preview"><img src={previewUrl} alt="미리보기" /></div>
+                                    <div className="preview">
+                                        <img src={previewUrl} alt="미리보기" />
+                                    </div>
                                 )}
                             </label>
                         </div>
@@ -178,7 +230,6 @@ export default function MyRecipeEditorPage(){
                                         }}
                                     />
 
-                                    {/* ⬇️ 삭제 버튼을 행 내부 마지막 칸에 */}
                                     <button
                                         className="icon-btn danger"
                                         onClick={() => delIng(i)}
@@ -189,7 +240,9 @@ export default function MyRecipeEditorPage(){
                                 </div>
                             ))}
                         </div>
-                        <button className="btn ghost" onClick={addIng}>+ 재료 추가</button>
+                        <button className="btn ghost" onClick={addIng}>
+                            + 재료 추가
+                        </button>
 
                         {/* 조리 단계 */}
                         <h4>조리 단계</h4>
@@ -217,7 +270,9 @@ export default function MyRecipeEditorPage(){
                                 </div>
                             ))}
                         </div>
-                        <button className="btn ghost" onClick={addStep}>+ 단계 추가</button>
+                        <button className="btn ghost" onClick={addStep}>
+                            + 단계 추가
+                        </button>
                     </div>
                 </div>
             </div>

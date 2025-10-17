@@ -1,17 +1,27 @@
+// src/pages/Community/PostWritePage.jsx
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "../../components/Community/CommunityLayout";
 import "./PostWritePage.css";
 import { createPost } from "../../api/communityApi";
+import useRequireAuth from "../../hooks/useRequireAuth";
 
 const BOARD_CODE_MAP = {
     "자유 게시판": "free",
     "레시피 게시판": "recipe",
     "정보 게시판": "info",
-    // "공지사항": "notice", // 필요하면 옵션 추가해서 사용
+    // "공지사항": "notice",
 };
 
+/** 인증 Wrapper: 훅 순서를 항상 고정 */
 export default function PostWritePage() {
+    const ready = useRequireAuth();
+    if (!ready) return null;
+    return <PostWritePageInner />;
+}
+
+/** 실제 글쓰기 페이지 로직 */
+function PostWritePageInner() {
     const navigate = useNavigate();
 
     const [title, setTitle] = useState("");

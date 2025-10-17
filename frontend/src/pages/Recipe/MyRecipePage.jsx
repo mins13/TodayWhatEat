@@ -2,20 +2,30 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import RecipeSidebar from "../../components/Recipe/RecipeSidebar";
-import { fetchMyDrafts } from "../../api/recipeDraftApi";
+import { fetchMyRecipes } from "../../api/myRecipeApi";
 import "./MyRecipePage.css";
 import searchIcon from "../../assets/Icon.jpg";
+import useRequireAuth from "../../hooks/useRequireAuth";
 
+/** Wrapper: 여기서만 인증을 확인하고, 통과되면 Inner를 렌더 */
 export default function MyRecipePage() {
+    const ready = useRequireAuth({ alert: true });
+    // ✅ 훅은 항상 동일하게 호출됨. 렌더 결과만 달라짐.
+    if (!ready) return null; // 스피너 넣고 싶으면 여기에 간단한 로딩 UI 가능
+    return <MyRecipePageInner />;
+}
+
+/** 실제 페이지 로직은 여기서 — 훅을 마음껏 사용해도 OK */
+function MyRecipePageInner() {
     const navigate = useNavigate();
 
     // 서버 데이터 & 페이지네이션
-    const [data, setData] = useState(null);          // Page DTO (content, totalPages...)
+    const [data, setData] = useState(null); // Page DTO (content, totalPages...)
     const [currentPage, setCurrentPage] = useState(1); // 1-based UI 페이지
     const pageSize = 10;
 
     // 검색 상태
-    const [searchInput, setSearchInput] = useState("");   // 입력창
+    const [searchInput, setSearchInput] = useState(""); // 입력창
     const [searchKeyword, setSearchKeyword] = useState(""); // 실제 필터 키워드
 
     const [loading, setLoading] = useState(false);
@@ -25,7 +35,7 @@ export default function MyRecipePage() {
         const load = async () => {
             setLoading(true);
             try {
-                const res = await fetchMyDrafts(currentPage - 1, pageSize); // 서버는 0-based
+                const res = await fetchMyRecipes(currentPage - 1, pageSize); // 서버는 0-based
                 setData(res);
             } finally {
                 setLoading(false);
@@ -57,9 +67,9 @@ export default function MyRecipePage() {
     // 페이지 이동 유틸
     const totalPages = data?.totalPages ?? 1;
     const goFirst = () => setCurrentPage(1);
-    const goPrev  = () => setCurrentPage((p) => Math.max(1, p - 1));
-    const goNext  = () => setCurrentPage((p) => Math.min(totalPages, p + 1));
-    const goLast  = () => setCurrentPage(totalPages);
+    const goPrev = () => setCurrentPage((p) => Math.max(1, p - 1));
+    const goNext = () => setCurrentPage((p) => Math.min(totalPages, p + 1));
+    const goLast = () => setCurrentPage(totalPages);
 
     return (
         <div className="main-container">
@@ -70,7 +80,7 @@ export default function MyRecipePage() {
                 </div>
 
                 {/* 오른쪽 본문 */}
-                <div className="right-panel">
+                <div className="right-panel myrecipes">
                     <h2 className="main-recipe-title">나만의 레시피</h2>
 
                     {/* 검색 + 작성 버튼 (정렬 없음) */}
@@ -109,7 +119,7 @@ export default function MyRecipePage() {
                             <div
                                 key={d.id}
                                 className="myrecipes-card"
-                                onClick={() => navigate(`/recipe/my/${d.id}/edit`)}
+                                onClick={() => navigate(`/recipe/my/${d.id}`)}
                             >
                                 <div className="title">{d.title || "(제목 없음)"}</div>
                                 <div className="subtitle">
@@ -124,7 +134,7 @@ export default function MyRecipePage() {
                         ))}
                     </div>
 
-                    {/* 페이지네이션 (정렬 제외, 전체 레이아웃과 느낌만 맞춤) */}
+                    {/* 페이지네이션 */}
                     {data && (
                         <div className="pagination">
                             <button onClick={goFirst} disabled={currentPage <= 1}>

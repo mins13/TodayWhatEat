@@ -11,11 +11,14 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     Optional<User> findByUsername(String username);
 
+    // 추가
+    Optional<User> findByEmail(String email);
+    Optional<User> findByNickname(String nickname);
+
     boolean existsByUsername(String username);
     boolean existsByEmail(String email);
     boolean existsByNickname(String nickname);
 
-    // ▼ 관리자 사용자 목록 검색용
     Page<User> findByUsernameContainingIgnoreCaseOrEmailContainingIgnoreCase(
             String username, String email, Pageable pageable
     );

@@ -1,159 +1,99 @@
 :root{
     --primary:#ef3b3b;
-    --bd:#c9d0da;        /* 기본 테두리(더 진하게) */
-    --bd-strong:#aeb6c3; /* hover/active */
+    --bd:#c9d0da;
+    --bd-strong:#aeb6c3;
     --ink:#2f343a;
     --muted:#7a8491;
     --bg:#f6f7f9;
 }
 
-/* 모든 박스 폭 계산 안정화 */
-*, *::before, *::after { box-sizing: border-box; }
+/* 스코프 */
+.my-editor *, .my-editor *::before, .my-editor *::after { box-sizing: border-box; }
 
 /* 상단 */
-.write-head{ display:flex; align-items:center; gap:10px; margin-bottom:12px; }
-.spacer{ flex:1; }
+.my-editor .write-head{ display:flex; align-items:center; gap:10px; margin-bottom:12px; }
+.my-editor .spacer{ flex:1; }
 
 /* 버튼 */
-.btn{
-    padding:8px 12px; border:1px solid var(--bd); border-radius:10px;
-    background:#fff; color:#333; cursor:pointer;
-}
-.btn.primary{ border-color:var(--primary); color:var(--primary); }
-.btn.danger{ border-color:#c62828; color:#c62828; }
-.btn.sm{ padding:4px 8px; border-radius:8px; }
-.btn.ghost{ border:1px dashed var(--bd); color:#555; background:#fff; }
-.btn.ghost:hover{ border-color:var(--bd-strong); }
+.my-editor .btn{ padding:8px 12px; border:1px solid var(--bd); border-radius:10px; background:#fff; color:#333; cursor:pointer; }
+.my-editor .btn.primary{ border-color:var(--primary); color:var(--primary); }
+.my-editor .btn.danger{ border-color:#c62828; color:#c62828; }
+.my-editor .btn.sm{ padding:4px 8px; border-radius:8px; }
+.my-editor .btn.ghost{ border:1px dashed var(--bd); color:#555; background:#fff; }
+.my-editor .btn.ghost:hover{ border-color:var(--bd-strong); }
 
 /* 카드/폼 */
-.write-card{
-    background:#fff; border:1px solid var(--bd); border-radius:12px;
-    padding:16px 28px;               /* ▶ 오른쪽 여유 공간 확보 */
-    box-shadow:0 1px 8px rgba(0,0,0,.04);
-    max-width:100%;
-}
+.my-editor .write-card{ background:#fff; border:1px solid var(--bd); border-radius:12px; padding:16px 28px; box-shadow:0 1px 8px rgba(0,0,0,.04); max-width:100%; }
 
-.grid{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
-.grid label{ display:flex; flex-direction:column; gap:6px; }
-.grid input{
-    padding:10px 12px; border:1px solid var(--bd); border-radius:10px; color:var(--ink);
-}
+/* 그리드/입력 */
+.my-editor .grid{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.my-editor .grid label{ display:flex; flex-direction:column; gap:6px; }
+.my-editor .grid input{ padding:10px 12px; border:1px solid var(--bd); border-radius:10px; color:var(--ink); }
 
-/* 이미지 URL + 파일 버튼 같은 줄 */
-.img-row{ display:flex; gap:8px; align-items:center; }
-.file-btn{ display:inline-flex; align-items:center; gap:6px; }
+/* 이미지 행 */
+.my-editor .img-row{ display:flex; gap:8px; align-items:center; }
+.my-editor .file-btn{ display:inline-flex; align-items:center; gap:6px; }
 
 /* 미리보기 */
-.preview{ margin-top:8px; }
-.preview img{ width:160px; height:120px; object-fit:cover; border-radius:10px; border:1px solid var(--bd); }
+.my-editor .preview{ margin-top:8px; }
+.my-editor .preview img{ width:160px; height:120px; object-fit:cover; border-radius:10px; border:1px solid var(--bd); }
 
 /* 공통 인풋 */
-.input{
-    height:40px; padding:0 12px; border:1px solid var(--bd); border-radius:10px; background:#fff; color:var(--ink);
-    transition: border .15s ease, box-shadow .15s ease, background .15s ease;
-    min-width:0;                      /* ▶ grid overflow 방지 */
+.my-editor .input{
+    height:40px; padding:0 12px; border:1px solid var(--bd); border-radius:10px; background:#fff; color:#ink;
+    transition:border .15s ease, box-shadow .15s ease, background .15s ease; min-width:0;
 }
-.input::placeholder{ color:#9aa3ae; }
-.input:focus{ outline:none; border-color:var(--bd-strong); box-shadow:0 0 0 3px rgba(239,59,59,.12); }
+.my-editor .input::placeholder{ color:#9aa3ae; }
+.my-editor .input:focus{ outline:none; border-color:var(--bd-strong); box-shadow:0 0 0 3px rgba(239,59,59,.12); }
 
-/* 리스트 컨테이너 */
-.section-list{ display:flex; flex-direction:column; gap:12px; margin:10px 0 12px; max-width:100%; }
+.my-editor .section-list{ display:flex; flex-direction:column; gap:12px; margin:10px 0 12px; max-width:100%; }
 
-/* 재료 행 (버튼 포함, 절대 overflow 안 나가게) */
-.ing-row{
+/* 재료 행 */
+.my-editor .ing-row{
     display:grid;
     grid-template-columns: 40px minmax(0,1.2fr) minmax(0,.8fr) minmax(0,.8fr) 40px;
-    gap:10px;
-    align-items:center;
-    padding:10px;
-    border:1px solid var(--bd);
-    border-radius:12px;
-    background:#fff;
-    transition: box-shadow .15s ease, border .15s ease;
-    max-width:100%;
+    gap:10px; align-items:center; padding:10px;
+    border:1px solid var(--bd); border-radius:12px; background:#fff;
+    transition: box-shadow .15s ease, border .15s ease; max-width:100%;
 }
-.ing-row:hover{ box-shadow:0 2px 12px rgba(0,0,0,.05); border-color:var(--bd-strong); }
-.ing-row .icon-btn{ justify-self:end; }
+.my-editor .ing-row:hover{ box-shadow:0 2px 12px rgba(0,0,0,.05); border-color:var(--bd-strong); }
+.my-editor .ing-row .icon-btn{ justify-self:end; }
 
 /* 단계 행 */
-.step-row{
-    display:grid;
-    grid-template-columns: 40px minmax(0,1fr) 40px;
-    gap:10px;
-    align-items:center;
-    padding:10px;
-    border:1px solid var(--bd);
-    border-radius:12px;
-    background:#fff;
-    transition: box-shadow .15s ease, border .15s ease;
-    max-width:100%;
+.my-editor .step-row{
+    display:grid; grid-template-columns: 40px minmax(0,1fr) 40px;
+    gap:10px; align-items:center; padding:10px; border:1px solid var(--bd);
+    border-radius:12px; background:#fff; transition: box-shadow .15s ease, border .15s ease; max-width:100%;
 }
-.step-row:hover{ box-shadow:0 2px 12px rgba(0,0,0,.05); border-color:var(--bd-strong); }
+.my-editor .step-row:hover{ box-shadow:0 2px 12px rgba(0,0,0,.05); border-color:var(--bd-strong); }
 
-/* 번호 배지 */
-.idx{
-    width:40px; height:40px; border-radius:999px;
-    display:flex; align-items:center; justify-content:center;
-    background:var(--bg); color:#5c646e; font-size:13px; font-weight:700;
-    border:1px solid var(--bd);
+/* 번호 뱃지 */
+.my-editor .idx{
+    width:40px; height:40px; border-radius:999px; display:flex; align-items:center; justify-content:center;
+    background:var(--bg); color:#5c646e; font-size:13px; font-weight:700; border:1px solid var(--bd);
 }
 
-/* 작은 삭제 버튼(행 내부) */
-.icon-btn{
-    width:40px; height:40px;
-    border:1px solid var(--bd);
-    border-radius:10px;
-    background:#fff;
-    color:#d14343;
-    font-size:20px; line-height:1;
-    display:flex; align-items:center; justify-content:center;
-    cursor:pointer;
+/* 작은 삭제 버튼 */
+.my-editor .icon-btn{
+    width:40px; height:40px; border:1px solid var(--bd); border-radius:10px; background:#fff; color:#d14343;
+    font-size:20px; line-height:1; display:flex; align-items:center; justify-content:center; cursor:pointer;
 }
-.icon-btn:hover{ border-color:#e1a4a4; background:#fff5f5; }
+.my-editor .icon-btn:hover{ border-color:#e1a4a4; background:#fff5f5; }
 
-/* 혹시 남아 있을 수 있는 구(舊) 스타일 무력화 (버튼이 밖으로 나가는 현상 방지) */
-.row .btn,
-.row .danger,
-.row .sm{
-    position: static !important;
-    margin: 0 !important;
-    transform: none !important;
-}
+/* 구 스타일 무력화 */
+.my-editor .row .btn,
+.my-editor .row .danger,
+.my-editor .row .sm{ position:static !important; margin:0 !important; transform:none !important; }
 
 /* 반응형 */
 @media (max-width: 720px){
-    .ing-row{
-        grid-template-columns: 36px minmax(0,1fr) minmax(0,1fr) 40px;
-    }
-    .ing-row .unit{ grid-column: 2 / span 1; } /* 아래줄로 배치 */
-    .ing-row .qty { grid-column: 3 / span 1; }
+    .my-editor .ing-row{ grid-template-columns: 36px minmax(0,1fr) minmax(0,1fr) 40px; }
+    .my-editor .ing-row .unit{ grid-column: 2 / span 1; }
+    .my-editor .ing-row .qty { grid-column: 3 / span 1; }
 }
 
-/* 파일 선택 버튼 슬림화 */
-.file-btn{
-    /* .btn 기본값 덮어쓰기 */
-    padding: 0 10px !important;
-    height: 36px;                 /* 입력칸(40px)보다 살짝 낮게 */
-    line-height: 36px;            /* 텍스트 세로 중앙 */
-    border-radius: 8px;
-    font-size: 14px;
-    white-space: nowrap;          /* 두 줄로 내려가는 문제 방지 */
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
+/* 파일 input 숨기기 */
+.my-editor .file-btn input[type="file"]{
+    position:absolute; width:1px; height:1px; overflow:hidden;
+    clip: rect(0 0 0 0); clip-path: inset(50%); white-space:nowrap; border:0; padding:0;
 }
-
-/* 숨긴 파일 인풋이 높이를 밀지 않도록 */
-.file-btn input[type="file"]{
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip: rect(0 0 0 0);
-    clip-path: inset(50%);
-    white-space: nowrap;
-    border: 0;
-    padding: 0;
-}
-

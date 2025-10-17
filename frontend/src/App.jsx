@@ -25,7 +25,7 @@ import RecipeApprovals from "./pages/Admin/RecipeApprovals.jsx";
 import AdminNotices from "./pages/Admin/AdminNotices.jsx";
 import AdminRecipes from "./pages/Admin/AdminRecipes.jsx";
 import MyRecipeEditorPage from "./pages/Recipe/MyRecipeEditorPage";
-
+import MyRecipeDetailPage from "./pages/Recipe/MyRecipeDetailPage";
 
 function App() {
     const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -83,6 +83,8 @@ function App() {
                                                                  setIsLoggedIn={setIsLoggedIn}><MyRecipeEditorPage/></AppLayout>} />
                 <Route path="/recipe/my/:draftId/edit" element={<AppLayout isLoggedIn={isLoggedIn}
                                                                            setIsLoggedIn={setIsLoggedIn}><MyRecipeEditorPage/></AppLayout>} />
+                <Route path="/recipe/my/:id" element={<AppLayout isLoggedIn={isLoggedIn}
+                                                                           setIsLoggedIn={setIsLoggedIn}><MyRecipeDetailPage/></AppLayout>} />
                 <Route path="/admin" element={<AdminLayout/>}>
                     <Route index element={<AdminDashboard/>}/>
                     <Route path="users" element={<AdminUsers/>}/>

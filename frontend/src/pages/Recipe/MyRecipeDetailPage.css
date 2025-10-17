@@ -1,0 +1,193 @@
+.my-detail-header{
+    display:flex; align-items:center; justify-content:space-between; gap:12px;
+}
+.header-actions{ display:flex; gap:8px; }
+
+.my-detail-body{ display:grid; grid-template-columns: 1fr; gap:16px; }
+.my-detail-image img{ width:100%; max-width:640px; border-radius:12px; display:block; }
+.my-detail-section{ padding:12px; border:1px solid #eee; border-radius:12px; background:#fff; }
+.chip-list{ display:flex; flex-wrap:wrap; gap:8px; }
+.chip{ padding:6px 10px; border:1px solid #ddd; border-radius:999px; background:#fafafa; }
+.step-list{ margin:0; padding-left:22px; }
+.empty{ color:#888; padding:8px 0; }
+/* RecipeDetailPage.css 맨 아래에 추가 (전역 오염 방지) */
+.recipe-detail-right-panel .btn-outline{
+    padding:6px 12px; border:1px solid #ddd; background:#fff; border-radius:8px; cursor:pointer;
+}
+.recipe-detail-right-panel .btn-primary{
+    padding:6px 12px; background:#e74c3c; color:#fff; border:none; border-radius:8px; cursor:pointer;
+}
+/* 승인 신청 버튼 (긍정/강조 색) */
+.btn-approve{
+    padding:6px 12px;
+    background:#16a34a;      /* green */
+    color:#fff;
+    border:none;
+    border-radius:8px;
+    cursor:pointer;
+    transition:filter .15s ease, transform .05s ease, box-shadow .15s ease;
+    box-shadow:0 2px 8px rgba(22,163,74,.18);
+}
+.btn-approve:hover{ filter:brightness(.96); box-shadow:0 3px 10px rgba(22,163,74,.22); }
+.btn-approve:active{ transform:translateY(1px); }
+.btn-approve:disabled{ opacity:.55; cursor:not-allowed; }
+
+/* 승인 모달 */
+.approve-modal-backdrop{
+    position:fixed; inset:0; background:rgba(0,0,0,.35);
+    display:flex; align-items:center; justify-content:center; z-index:100;
+}
+.approve-modal-card{
+    width:90%; max-width:560px;
+    background:#fff; border:1px solid #e5e7eb; border-radius:14px;
+    box-shadow:0 10px 40px rgba(0,0,0,.18);
+    padding:18px;
+}
+.approve-modal-card h3{ margin:0 0 10px; }
+
+.approve-bullets{
+    margin:0 0 14px; padding-left:18px; color:#444;
+}
+.approve-bullets li{ margin:6px 0; }
+
+.approve-actions{
+    display:flex; gap:8px; justify-content:flex-end; align-items:center;
+}
+/* 모달 액션 영역 간격 조금 여유 */
+.approve-actions { display:flex; gap:10px; justify-content:flex-end; }
+
+/* 취소 버튼 전용 스타일 */
+.btn-cancel{
+    background:#fff;
+    color:#374151;
+    border:1px solid #d1d5db;
+    border-radius:10px;
+    padding:10px 14px;
+    font-weight:600;
+    box-shadow:0 1px 0 rgba(16,24,40,.04);
+    transition:background .15s ease, border-color .15s ease, box-shadow .15s ease, transform .08s ease;
+    cursor:pointer;
+}
+.btn-cancel:hover{
+    background:#f9fafb;
+    border-color:#c0c6d0;
+    transform:translateY(-1px);
+}
+.btn-cancel:active{
+    transform:none;
+    background:#f3f4f6;
+}
+.btn-cancel:disabled{
+    opacity:.6;
+    cursor:not-allowed;
+}
+.btn-cancel:focus-visible{
+    outline:none;
+    box-shadow:0 0 0 3px rgba(43,92,255,.15);
+}
+
+/* ===== 제목(왼쪽) + 버튼(오른쪽) 그리드 헤더 ===== */
+.detail-head{
+    display: grid;
+    grid-template-columns: 1fr auto; /* 제목 1fr, 버튼 auto */
+    align-items: start;              /* 버튼을 상단 라인에 고정 */
+    column-gap: 12px;
+    row-gap: 8px;
+}
+
+/* 제목은 여러 줄 허용 (길면 자연스럽게 내려감) */
+.recipe-detail-title{
+    margin: 0;
+    line-height: 1.28;
+    word-break: keep-all;
+    overflow-wrap: anywhere; /* 아주 긴 단어도 줄바꿈 */
+}
+
+/* 버튼 묶음은 오른쪽 상단 고정 + 줄바꿈 방지 */
+.detail-head-actions{
+    display: flex;
+    gap: 8px;
+    white-space: nowrap;
+    justify-self: end;  /* 그리드 오른쪽 정렬 */
+    align-self: start;  /* 상단 맞춤 */
+}
+
+/* 모바일에서는 버튼을 아래 줄로 내려주기(선택) */
+@media (max-width: 640px){
+    .detail-head{
+        grid-template-columns: 1fr;
+    }
+    .detail-head-actions{
+        justify-self: start;
+        white-space: normal;  /* 너무 좁으면 줄바꿈 허용 */
+        flex-wrap: wrap;
+        row-gap: 6px;
+    }
+}
+
+/* (이미 있다면 생략 가능) 승인/취소 버튼 미관 */
+.btn-approve{
+    background:#1d4ed8; color:#fff; border:none;
+    padding:8px 12px; border-radius:10px; cursor:pointer;
+}
+.btn-approve:disabled{ opacity:.6; cursor:not-allowed; }
+
+.btn-cancel{
+    background:#fff; color:#374151; border:1px solid #e5e7eb;
+    padding:8px 12px; border-radius:10px; cursor:pointer;
+}
+.btn-cancel:hover{ background:#f9fafb; }
+
+/* ====== MyRecipeDetail/RecipeDetail 공통 - 헤더 한 줄만 남기기 ====== */
+
+/* 1) 제목(.recipe-detail-title)에 걸린 기존 구분선 제거 */
+.recipe-detail-right-panel .recipe-detail-title{
+    border-bottom: 0 !important;
+    padding-bottom: 0 !important;
+    margin-bottom: 0 !important;
+}
+
+/* 2) 헤더(제목+버튼)에서만 구분선 1줄 그리기 */
+.recipe-detail-right-panel .detail-head{
+    display: grid !important;                 /* flex로 선언된 중복 규칙 무효화 */
+    grid-template-columns: 1fr auto;
+    align-items: start;
+    column-gap: 12px;
+    row-gap: 8px;
+
+    padding-bottom: 10px;
+    border-bottom: 1px solid #e5e7eb;         /* ← 유일한 구분선 */
+    margin-bottom: 12px;
+}
+
+/* 3) 버튼 묶음 오른쪽 상단 고정 */
+.recipe-detail-right-panel .detail-head-actions{
+    display: flex;
+    gap: 8px;
+    white-space: nowrap;
+    justify-self: end;
+    align-self: start;
+}
+
+/* 4) 이미지 영역 위쪽에 혹시 남아있는 선/여백 싹 제거 */
+.recipe-detail-right-panel .recipe-detail-top,
+.recipe-detail-right-panel .recipe-detail-top::before,
+.recipe-detail-right-panel .recipe-detail-top::after,
+.recipe-detail-right-panel hr{
+    border-top: 0 !important;
+    border-bottom: 0 !important;
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+}
+
+/* 5) 모바일 대응 */
+@media (max-width: 640px){
+    .recipe-detail-right-panel .detail-head{ grid-template-columns: 1fr; }
+    .recipe-detail-right-panel .detail-head-actions{
+        justify-self: start;
+        white-space: normal;
+        flex-wrap: wrap;
+        row-gap: 6px;
+    }
+}
+

@@ -131,3 +131,92 @@
     padding-top: 10px;
     border-top: 1px solid #e5e7eb;
 }
+
+.admin-page .search-row .search-input{
+    background:#fff; outline:none; transition:border .15s, box-shadow .15s;
+}
+.admin-page .search-row .search-input:focus{
+    border-color:#b7c2ff;
+    box-shadow:0 0 0 3px rgba(43,92,255,.12);
+}
+.admin-page .search-row .btn.primary,
+.admin-page .search-row .primary{
+    background:var(--brand); color:#fff; border:none; border-radius:10px;
+}
+.admin-page .search-row .primary:hover{ filter:brightness(0.95); }
+
+/* 버튼 공통 (테이블 액션/모달 하단 포함) */
+.admin-page button{
+    height:34px; padding:0 12px; border:1px solid var(--line);
+    border-radius:10px; background:#fff; cursor:pointer;
+}
+.admin-page button:hover{ background:#fafbff; }
+.admin-page button.primary{ background:var(--brand); color:#fff; border-color:var(--brand); }
+.admin-page button.primary:hover{ filter:brightness(0.95); }
+.admin-page button.danger{ background:#fff; color:var(--danger); border-color:#fecaca; }
+.admin-page button.danger:hover{ background:#fff5f5; }
+
+/* 테이블 기본형(.tbl) – 목록 화면들 공통 */
+.admin-page .tbl{
+    width:100%; border-collapse:separate; border-spacing:0;
+    background:#fff; border:1px solid var(--line); border-radius:14px;
+    overflow:hidden; box-shadow:0 1px 2px rgba(16,24,40,.04);
+}
+.admin-page .tbl thead th{
+    background:#fafbff; color:#111827; font-weight:700;
+    padding:12px; border-bottom:1px solid var(--line); text-align:left;
+}
+.admin-page .tbl tbody td{
+    padding:12px; border-bottom:1px solid var(--line); color:#374151; vertical-align:middle;
+}
+.admin-page .tbl tbody tr:last-child td{ border-bottom:none; }
+.admin-page .tbl tbody tr:hover{ background:#fcfdff; }
+
+/* 테이블 안 액션 버튼 묶음이 줄바꿈될 때 간격 */
+.admin-page .tbl td > div,
+.admin-page .tbl td[style*="display:flex"]{
+    gap:8px; flex-wrap:wrap;
+}
+
+/* 레시피 관리 썸네일 보정 */
+.admin-page .tbl img{
+    display:block; width:64px; height:42px; object-fit:cover; border-radius:6px; border:1px solid #eef2f7;
+}
+
+/* 페이지네이션 */
+.admin-page .pager button{
+    min-width:32px; height:32px; border-radius:8px; background:#fff;
+}
+.admin-page .pager button.active,
+.admin-page .pager .btn.active{
+    background:var(--brand); color:#fff; border-color:var(--brand);
+}
+.admin-page .pager button:disabled{ opacity:.45; cursor:not-allowed; }
+
+/* 모달 공통 */
+.admin-page .modal-card{ max-width:720px; }
+.admin-page .modal-card .actions{
+    display:flex; justify-content:flex-end; gap:8px;
+}
+.admin-page .modal-card input,
+.admin-page .modal-card textarea{
+    width:100%; background:#fff; transition:border .15s, box-shadow .15s;
+}
+.admin-page .modal-card input:focus,
+.admin-page .modal-card textarea:focus{
+    outline:none; border-color:#c7d2fe; box-shadow:0 0 0 3px rgba(43,92,255,.12);
+}
+
+/* 태그 편집 뱃지/링크 정리 */
+.admin-page .badge-soft{
+    display:inline-flex; align-items:center; gap:6px;
+    background:#f6f7fb; border:1px solid var(--line); border-radius:999px; padding:3px 8px; font-size:12px; color:#555;
+}
+.admin-page .badge-soft .link{ color:var(--danger); border:none; background:none; cursor:pointer; }
+.admin-page .badge-soft .link:hover{ text-decoration:underline; }
+
+/* 빈 리스트/로딩 */
+.admin-page .empty{ color:var(--muted); padding:28px 0; text-align:center; }
+
+/* 작은 체크 아이콘 느낌 */
+.admin-page td:has(> svg), .admin-page td:has(> input[type="checkbox"]){ text-align:center; }

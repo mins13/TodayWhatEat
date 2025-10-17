@@ -365,3 +365,85 @@
 .like-btn:hover { transform: translateY(-1px); }
 .like-btn.liked { background: #ffe3e6; color: #e0245e; }
 .like-count, .view-count { color: #666; font-size: 14px; }
+
+/* 상단 타이틀 + 버튼 정렬 */
+.detail-head{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+}
+.detail-head-actions{
+    display:flex;
+    gap:8px;
+}
+
+/* 공통 아웃라인 버튼 */
+.btn-outline{
+    padding:8px 12px;
+    border:1px solid #D1D5DB;
+    border-radius:10px;
+    background:#fff;
+    color:#374151;
+    font-weight:600;
+    cursor:pointer;
+    transition:background .15s, border-color .15s, transform .08s;
+}
+.btn-outline:hover{ background:#F9FAFB; border-color:#C0C6D0; transform:translateY(-1px); }
+.btn-outline:active{ transform:none; background:#F3F4F6; }
+
+/* 나만의 레시피 추가 버튼(메인 액션) */
+.btn-addmine{
+    padding:10px 14px;
+    border:none;
+    border-radius:10px;
+    background:#ef3b3b;       /* 메인 컬러 */
+    color:#fff;
+    font-weight:700;
+    cursor:pointer;
+    box-shadow:0 6px 16px rgba(239,59,59,.25);
+    transition:transform .08s ease, box-shadow .15s ease, opacity .15s ease;
+}
+.btn-addmine:hover{ transform:translateY(-1px); box-shadow:0 10px 24px rgba(239,59,59,.32); }
+.btn-addmine:active{ transform:none; }
+.btn-addmine:disabled{ opacity:.6; cursor:not-allowed; }
+
+/* 제목 + 버튼 헤더: 2열 그리드 (제목 1fr, 버튼 auto) */
+.detail-head{
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: start;   /* 버튼을 상단 라인에 맞춤 */
+    column-gap: 12px;
+    row-gap: 8px;
+}
+
+/* 제목은 여러 줄 허용 (그대로 내려가게) */
+.recipe-detail-title{
+    margin: 0;
+    line-height: 1.28;
+    word-break: keep-all;
+    overflow-wrap: anywhere; /* 너무 긴 단어도 줄바꿈 */
+}
+
+/* 버튼 묶음: 줄바꿈 없이 오른쪽 상단 고정 */
+.detail-head-actions{
+    display: flex;
+    gap: 8px;
+    white-space: nowrap;  /* 버튼 텍스트 줄바꿈 방지 */
+    justify-self: end;    /* 그리드의 오른쪽 정렬 */
+    align-self: start;    /* 그리드 셀의 상단 정렬 */
+}
+
+/* 모바일에서는 버튼을 제목 아래로 내려 배치(선택) */
+@media (max-width: 640px){
+    .detail-head{
+        grid-template-columns: 1fr;
+    }
+    .detail-head-actions{
+        justify-self: start;  /* 아래 줄에서 왼쪽 정렬 */
+        white-space: normal;  /* 매우 좁으면 버튼 줄바꿈 허용 */
+        flex-wrap: wrap;
+        row-gap: 6px;
+    }
+}
+

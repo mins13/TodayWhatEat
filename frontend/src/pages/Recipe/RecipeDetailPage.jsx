@@ -4,6 +4,7 @@ import RecipeSidebar from "../../components/Recipe/RecipeSidebar";
 import ConfirmModal from "../../components/Recipe/ConfirmModal";
 import "./RecipeDetailPage.css";
 import { addView, fetchLikeStatus, toggleLike } from "../../api/recipeEngageApi";
+import { createMyRecipe } from "../../api/myRecipeApi";
 
 const IMG_PLACEHOLDER =
     "data:image/svg+xml;utf8," +
@@ -281,6 +282,53 @@ export default function RecipeDetailPage() {
         setIsModalOpen(true);
     };
 
+    // 공개 레시피 → 나만의 레시피로 복사
+     const addToMyRecipes = async () => {
+           if (!recipe) return;
+           try {
+                  // 대표 이미지
+                     const imageUrl =
+                       recipe.imageUrl || recipe.image || recipe.thumbnail || imgSrc || "";
+
+                    // 재료: "2컵" → {quantity:2, unit:"컵"}
+                         const ingPayload = (ingredients || []).map((ing, i) => {
+                       const { value, unit } = splitAmount(ing?.amount || "");
+                       return {
+                           name: ing?.name || "",
+                           quantity: Number.isFinite(value) ? value : 1,
+                           unit: unit || "",
+                           sortOrder: i + 1,
+                       };
+                     });
+
+                     // 단계
+                         const stepPayload = (steps || []).map((s, i) => ({
+                                 content: s,
+                                 sortOrder: i + 1,
+                         }));
+
+                     const payload = {
+                       title: recipe.title || "(제목 없음)",
+                       imageUrl,
+                       ingredients: ingPayload,
+                       steps: stepPayload,
+                     };
+
+                     const res = await createMyRecipe(payload); // API는 {id, ...} 반환한다고 가정
+                 const newId = res?.id || res?.recipeId || res?.data?.id;
+                 if (newId) {
+                       alert("나만의 레시피에 추가되었습니다. 수정 화면으로 이동합니다.");
+                       navigate(`/recipe/my/${newId}/edit`);
+                     } else {
+                      alert("추가는 완료했지만 새 레시피 ID를 받지 못했어요. 내 레시피 목록으로 이동합니다.");
+                       navigate("/recipe/my");
+                 }
+                } catch (e) {
+                 console.error(e);
+                 alert("나만의 레시피 추가에 실패했어요. 로그인 상태를 확인해주세요.");
+               }
+     };
+
 
 
     if (!recipe) return <div>로딩 중...</div>;
@@ -298,7 +346,17 @@ export default function RecipeDetailPage() {
                 </div>
 
                 <div className="recipe-detail-right-panel">
-                    <h2 className="recipe-detail-title">{recipe.title}</h2>
+                    <div className="detail-head">
+                                <h2 className="recipe-detail-title">{recipe.title}</h2>
+                                <div className="detail-head-actions">
+                                  <button className="btn-outline" onClick={() => navigate("/recipe")}>
+                                    목록으로
+                                  </button>
+                                  <button className="btn-addmine" onClick={addToMyRecipes}>
+                                    나만의 레시피 추가
+                                  </button>
+                                </div>
+                              </div>
                     <div className="recipe-detail-stats">
                         <button
                             className={`like-btn ${liked ? "liked" : ""}`}
