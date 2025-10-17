@@ -1,84 +1,149 @@
-import { useEffect, useState } from "react";
-import { createDraft, updateDraft, submitDraft, fetchMyDrafts } from "../../api/recipeDraftApi";
+// src/pages/Recipe/MyRecipePage.jsx
+import React, { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import RecipeSidebar from "../../components/Recipe/RecipeSidebar";
+import { fetchMyDrafts } from "../../api/recipeDraftApi";
 import "./MyRecipePage.css";
+import searchIcon from "../../assets/Icon.jpg";
 
-export default function MyRecipePage(){
-    const empty = { title:"", description:"", imageUrl:"", tags:[], ingredients:[], steps:[] };
-    const [form, setForm] = useState(empty);
-    const [list, setList] = useState(null);
+export default function MyRecipePage() {
+    const navigate = useNavigate();
 
-    const load = async () => setList(await fetchMyDrafts(0,20));
-    useEffect(()=>{ load(); },[]);
+    // 서버 데이터 & 페이지네이션
+    const [data, setData] = useState(null);          // Page DTO (content, totalPages...)
+    const [currentPage, setCurrentPage] = useState(1); // 1-based UI 페이지
+    const pageSize = 10;
 
-    const addIng = () => setForm(f => ({...f, ingredients:[...f.ingredients, {name:"",quantity:"",unit:"",sortOrder:f.ingredients.length}]}));
-    const addStep= () => setForm(f => ({...f, steps:[...f.steps, {stepOrder:f.steps.length+1, content:""}]}));
+    // 검색 상태
+    const [searchInput, setSearchInput] = useState("");   // 입력창
+    const [searchKeyword, setSearchKeyword] = useState(""); // 실제 필터 키워드
 
-    const save = async () => {
-        const payload = {...form, tags: (form.tagsText||"").split(",").map(s=>s.trim()).filter(Boolean)};
-        await createDraft(payload);
-        setForm(empty); await load(); alert("초안 저장 완료");
+    const [loading, setLoading] = useState(false);
+
+    // 서버에서 내 초안 목록 가져오기 (정렬/상태 없음)
+    useEffect(() => {
+        const load = async () => {
+            setLoading(true);
+            try {
+                const res = await fetchMyDrafts(currentPage - 1, pageSize); // 서버는 0-based
+                setData(res);
+            } finally {
+                setLoading(false);
+            }
+        };
+        load();
+    }, [currentPage]);
+
+    // 로컬 검색(제목/재료명)
+    const items = useMemo(() => {
+        const list = data?.content ?? [];
+        const kw = searchKeyword.trim().toLowerCase();
+        if (!kw) return list;
+        return list.filter((d) => {
+            const inTitle = (d.title || "").toLowerCase().includes(kw);
+            const inIngs = (d.ingredients || []).some((g) =>
+                (g.name || "").toLowerCase().includes(kw)
+            );
+            return inTitle || inIngs;
+        });
+    }, [data, searchKeyword]);
+
+    // 검색 실행
+    const runSearch = () => {
+        setSearchKeyword(searchInput);
+        setCurrentPage(1);
     };
 
-    const submit = async (id) => {
-        await submitDraft(id);
-        await load(); alert("승인 요청 완료");
-    };
+    // 페이지 이동 유틸
+    const totalPages = data?.totalPages ?? 1;
+    const goFirst = () => setCurrentPage(1);
+    const goPrev  = () => setCurrentPage((p) => Math.max(1, p - 1));
+    const goNext  = () => setCurrentPage((p) => Math.min(totalPages, p + 1));
+    const goLast  = () => setCurrentPage(totalPages);
 
     return (
-        <div className="recipe-draft-shell">
-            <h2>나만의 레시피 만들기</h2>
-            <div className="card">
-                <div className="grid">
-                    <label>제목<input value={form.title} onChange={e=>setForm({...form,title:e.target.value})}/></label>
-                    <label>대표이미지 URL<input value={form.imageUrl} onChange={e=>setForm({...form,imageUrl:e.target.value})}/></label>
-                    <label>태그(콤마구분)<input value={form.tagsText||""} onChange={e=>setForm({...form,tagsText:e.target.value})}/></label>
-                    <label>설명<textarea value={form.description} onChange={e=>setForm({...form,description:e.target.value})}/></label>
+        <div className="main-container">
+            <div className="community-wrapper">
+                {/* 왼쪽 사이드바 */}
+                <div className="left-panel">
+                    <RecipeSidebar />
                 </div>
 
-                <h4>재료</h4>
-                {form.ingredients.map((g,i)=>(
-                    <div className="row" key={i}>
-                        <input placeholder="이름" value={g.name} onChange={e=>{const x=[...form.ingredients];x[i].name=e.target.value;setForm({...form,ingredients:x});}}/>
-                        <input placeholder="수량" value={g.quantity} onChange={e=>{const x=[...form.ingredients];x[i].quantity=e.target.value;setForm({...form,ingredients:x});}}/>
-                        <input placeholder="단위" value={g.unit} onChange={e=>{const x=[...form.ingredients];x[i].unit=e.target.value;setForm({...form,ingredients:x});}}/>
-                    </div>
-                ))}
-                <button onClick={addIng}>+ 재료 추가</button>
+                {/* 오른쪽 본문 */}
+                <div className="right-panel">
+                    <h2 className="main-recipe-title">나만의 레시피</h2>
 
-                <h4>조리 단계</h4>
-                {form.steps.map((s,i)=>(
-                    <div className="row" key={i}>
-                        <span className="badge">{i+1}</span>
-                        <input placeholder="내용" value={s.content} onChange={e=>{const x=[...form.steps];x[i].content=e.target.value;setForm({...form,steps:x});}}/>
-                    </div>
-                ))}
-                <button onClick={addStep}>+ 단계 추가</button>
+                    {/* 검색 + 작성 버튼 (정렬 없음) */}
+                    <div className="main-recipe-searchbar">
+                        <div className="main-recipe-searchbox">
+                            <input
+                                type="text"
+                                placeholder="검색어를 입력하세요"
+                                value={searchInput}
+                                onChange={(e) => setSearchInput(e.target.value)}
+                                onKeyDown={(e) => {
+                                    if (e.key === "Enter") runSearch();
+                                }}
+                            />
+                            <button className="search-button" onClick={runSearch}>
+                                <img src={searchIcon} alt="검색" />
+                            </button>
+                        </div>
 
-                <div className="actions">
-                    <button className="primary" onClick={save}>초안 저장</button>
+                        <button
+                            className="write-button"
+                            onClick={() => navigate("/recipe/my/new")}
+                        >
+                            레시피 작성
+                        </button>
+                    </div>
+
+                    {/* 목록 */}
+                    {loading && <div className="empty">로딩...</div>}
+                    {!loading && items.length === 0 && (
+                        <div className="empty">레시피가 없습니다.</div>
+                    )}
+
+                    <div className="myrecipes-list">
+                        {items.map((d) => (
+                            <div
+                                key={d.id}
+                                className="myrecipes-card"
+                                onClick={() => navigate(`/recipe/my/${d.id}/edit`)}
+                            >
+                                <div className="title">{d.title || "(제목 없음)"}</div>
+                                <div className="subtitle">
+                                    재료: {(d.ingredients || [])
+                                    .slice(0, 6)
+                                    .map((g) => g.name)
+                                    .filter(Boolean)
+                                    .join(", ")}
+                                    {(d.ingredients || []).length > 6 ? " …" : ""}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* 페이지네이션 (정렬 제외, 전체 레이아웃과 느낌만 맞춤) */}
+                    {data && (
+                        <div className="pagination">
+                            <button onClick={goFirst} disabled={currentPage <= 1}>
+                                «
+                            </button>
+                            <button onClick={goPrev} disabled={currentPage <= 1}>
+                                ‹
+                            </button>
+                            <span className="page-num">{currentPage}</span>
+                            <button onClick={goNext} disabled={currentPage >= totalPages}>
+                                ›
+                            </button>
+                            <button onClick={goLast} disabled={currentPage >= totalPages}>
+                                »
+                            </button>
+                        </div>
+                    )}
                 </div>
             </div>
-
-            <h3 style={{marginTop:24}}>내 초안 목록</h3>
-            {!list ? "로딩..." : (
-                <table className="tbl">
-                    <thead><tr><th>ID</th><th>제목</th><th>상태</th><th>승인결과</th><th>액션</th></tr></thead>
-                    <tbody>
-                    {list.content.map(d=>(
-                        <tr key={d.id}>
-                            <td>{d.id}</td>
-                            <td>{d.title}</td>
-                            <td><span className={`chip ${d.status.toLowerCase()}`}>{d.status}</span></td>
-                            <td>{d.status==="REJECTED" ? d.rejectionReason : (d.publishedRecipeId ? `등록됨(#${d.publishedRecipeId})` : "-")}</td>
-                            <td>
-                                {(d.status==="DRAFT" || d.status==="REJECTED") &&
-                                    <button onClick={()=>submit(d.id)}>승인요청</button>}
-                            </td>
-                        </tr>
-                    ))}
-                    </tbody>
-                </table>
-            )}
         </div>
     );
 }
