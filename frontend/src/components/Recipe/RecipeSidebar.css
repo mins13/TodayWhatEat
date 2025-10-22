@@ -2,40 +2,61 @@
     width: 200px;
     display: flex;
     flex-direction: column;
-    gap: 1.5rem;
     padding: 2rem 0;
     border-right: 1px solid #ddd;
     font-family: 'Noto Sans KR', sans-serif;
 }
 
+.sidebar-section { margin-bottom: 12px; }
+
+/* 상위 항목 */
 .sidebar-link {
     padding: 0.7rem 1rem;
     text-align: center;
     font-size: 1rem;
     font-weight: 500;
     cursor: pointer;
-    border-top: 1px solid #ccc;
-    border-bottom: 1px solid #ccc;
     color: #222;
-    text-decoration: none;
-    transition: background-color 0.2s ease;
+    border-top: 1px solid #e5e7eb;
+    border-bottom: 1px solid #e5e7eb;
+    transition: background-color .2s ease;
 }
-
-.sidebar-link:first-child {
-    border-top: none;
-}
-
-.sidebar-link:last-child {
-    border-bottom: none;
-}
-
-.sidebar-link:hover {
-    background-color: #f9f9f9;
-}
-
+.sidebar-link:hover { background-color: #f9f9f9; }
 .sidebar-link.active {
-    font-weight: bold;
     color: #c0392b;
-    border-top: 2px solid #c0392b;
-    border-bottom: 2px solid #c0392b;
+    font-weight: 700;
+    border-color: #c0392b;
+}
+
+/* 하위 메뉴 컨테이너: 들여쓰기 + 가이드 라인 */
+.subnav {
+    margin-top: 6px;
+    padding-left: 14px;
+    border-left: 2px solid #eee;
+}
+
+/* 하위 항목 */
+.sub-link {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: .45rem .5rem;
+    font-size: .95rem;
+    color: #666;
+    cursor: pointer;
+    border-radius: 6px;
+}
+.sub-link:hover { background: #fafafa; }
+.sub-link.active {
+    color: #c0392b;
+    font-weight: 600;
+    background: #fff6f5;
+}
+
+/* 하위 항목 앞에 작은 화살표 느낌 */
+.sub-bullet {
+    display: inline-block;
+    width: 14px;
+    text-align: center;
+    opacity: .7;
 }

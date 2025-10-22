@@ -53,8 +53,17 @@ public class DraftRecipe {
     @UpdateTimestamp
     private LocalDateTime updatedAt;
 
+    /** ✅ 원본 '나만의 레시피' ID (승인 신청을 MyRecipe에서 올렸을 때 세팅) */
+    @Column(name = "source_my_recipe_id")
+    private Long sourceMyRecipeId;
+
     public void setChildrenOwner() {
         ingredients.forEach(i -> i.setDraft(this));
         steps.forEach(s -> s.setDraft(this));
     }
 }
+
+
+
+
+

@@ -22,6 +22,11 @@ public class AdminRecipeDraftController {
         return svc.listPending(PageRequest.of(page, size));
     }
 
+    @GetMapping("/{id}")
+    public DraftRecipeRes getOne(@PathVariable Long id){
+        return svc.getOne(id);
+    }
+
     // 승인
     @PostMapping("/{id}/approve")
     public DraftRecipeRes approve(@PathVariable Long id){

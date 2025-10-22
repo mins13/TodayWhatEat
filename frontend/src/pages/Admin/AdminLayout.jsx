@@ -1,4 +1,4 @@
-import { NavLink, Outlet, useLocation } from "react-router-dom";
+import { NavLink, Outlet, useLocation,Link  } from "react-router-dom";
 import "./admin.css";
 
 const MENUS = [
@@ -56,6 +56,9 @@ export default function AdminLayout() {
                         관리자 &nbsp; / &nbsp;<b>{current?.label ?? "콘솔"}</b>
                     </div>
                     <div className="top-actions">
+                        <Link to="/" className="btn ghost small">
+                            🏠 홈으로
+                        </Link>
                         {/* 필요 시 토글/버튼 추가 */}
                         <span className="badge-role">ADMIN</span>
                     </div>

@@ -94,6 +94,7 @@
     font-weight: bold;
     color: black;
     text-decoration: none;
+
 }
 
 .welcome-text {
@@ -103,3 +104,37 @@
 }
 
 
+.admin-link{
+    margin-left: 10px;
+    padding: 6px 10px;
+    border: 1px solid #e5e7eb;
+    border-radius: 999px;
+    font-size: 13px;
+    color: #111;
+    background: #fff;
+}
+.admin-link:hover{
+    background: #fafbff;
+}
+/* 상단 유틸: 관리자 버튼을 오른쪽으로 */
+.top-utility{
+    width: 100%;
+    max-width: 1200px;
+    display: flex;
+    justify-content: flex-end; /* 👉 오른쪽 정렬 */
+    padding: 4px 16px 0;        /* 살짝 위 여백 */
+
+}
+
+/* 관리자 버튼 모양 (기존 admin-link와 동일 톤) */
+.admin-pill{
+    margin-left: 10px;
+    padding: 6px 10px;
+    border: 1px solid #e5e7eb;
+    border-radius: 999px;
+    font-size: 13px;
+    color: #111;
+    background: #fff;
+    text-decoration: none;
+}
+.admin-pill:hover{ background: #fafbff; }

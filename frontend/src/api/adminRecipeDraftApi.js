@@ -1,12 +1,22 @@
-import axios from "axios";
-const auth = () => ({ Authorization: `Bearer ${localStorage.getItem("token")}` });
+// src/api/adminRecipeDraftApi.js
+import { http } from "./http";
 
-export async function fetchPendingDrafts(page=0,size=20){
-    return (await axios.get(`/api/admin/recipe-drafts/pending?page=${page}&size=${size}`, { headers: auth() })).data;
+export async function fetchPendingDrafts(page = 0, size = 20) {
+    const res = await http.get("/api/admin/recipe-drafts/pending", { params: { page, size } });
+    return res.data;
 }
-export async function approveDraft(id){
-    return (await axios.post(`/api/admin/recipe-drafts/${id}/approve`, null, { headers: auth() })).data;
+
+export async function fetchDraftById(id) {
+    const res = await http.get(`/api/admin/recipe-drafts/${id}`);
+    return res.data;
 }
-export async function rejectDraft(id, reason){
-    return (await axios.post(`/api/admin/recipe-drafts/${id}/reject`, { reason }, { headers: auth() })).data;
+
+export async function approveDraft(id) {
+    const res = await http.post(`/api/admin/recipe-drafts/${id}/approve`, {});
+    return res.data;
+}
+
+export async function rejectDraft(id, reason = "형식 미흡") {
+    const res = await http.post(`/api/admin/recipe-drafts/${id}/reject`, { reason });
+    return res.data;
 }

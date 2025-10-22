@@ -1,0 +1,81 @@
+/* 레이아웃 */
+.recipe-detail-container { width: 100%; display: flex; justify-content: center; }
+.recipe-detail-wrapper { width: 1100px; display: grid; grid-template-columns: 240px 1fr; gap: 24px; }
+.recipe-detail-left-panel { min-height: 520px; }
+.recipe-detail-right-panel { min-height: 520px; }
+
+.page-title { margin: 6px 0 12px; font-size: 22px; font-weight: 800; }
+.card { background: #fff; border: 1px solid #eee; border-radius: 10px; padding: 16px; }
+
+/* 표 */
+.tbl {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    background: #fff;
+    border: 1px solid var(--line, #e9ebf0);
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 1px 2px rgba(16,24,40,.04);
+}
+.tbl thead th {
+    background: #fafbff;
+    font-weight: 700;
+    text-align: left;
+    padding: 12px;
+    border-bottom: 1px solid var(--line, #e9ebf0);
+    white-space: nowrap;
+}
+.tbl th, .tbl td {
+    padding: 12px 10px;
+    border-bottom: 1px solid #f0f0f0;
+    vertical-align: middle;
+}
+.tbl tbody tr:last-child td { border-bottom: none; }
+
+/* 제목 셀(보수적으로 ellipsis도 걸어둠) */
+.title-clip {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    /* 보기 좋은 폭(문자 기준) – 화면 줄어들어도 과도하게 길지 않게 */
+    max-width: 26ch;
+}
+
+/* 기타 UI */
+.badge { display:inline-block; border-radius:999px; padding:2px 8px; font-size:12px; background:#eef1f6; color:#374151; }
+.badge-red { background:#fde8e8; color:#b91c1c; border-radius:999px; padding:2px 8px; font-size:12px; }
+.badge-soft { background:#f6f7fb; border:1px solid var(--line, #e9ebf0); border-radius:999px; padding:3px 8px; font-size:12px; color:#555; }
+
+.muted { color:#8a8fa3; }
+
+.pager { display:flex; align-items:center; gap:8px; justify-content:center; }
+.pager button { min-width:34px; height:30px; border:1px solid #e5e7eb; background:#fff; border-radius:6px; cursor:pointer; }
+.pager .page-num { padding:0 8px; font-weight:700; }
+
+.btn-refresh {
+    height: 30px;
+    padding: 0 10px;
+    border: 1px solid #e5e7eb;
+    background: #fff;
+    border-radius: 6px;
+    cursor: pointer;
+}
+.btn-refresh:disabled { opacity: .6; cursor: not-allowed; }
+
+.empty { color:#8a8fa3; text-align:center; padding:28px 0; }
+
+/* 로딩 스켈레톤 */
+.skeleton-row td { padding: 14px 10px; }
+.skeleton-line {
+    height: 14px;
+    width: 100%;
+    border-radius: 6px;
+    background: linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 37%, #f3f4f6 63%);
+    background-size: 400% 100%;
+    animation: shimmer 1.2s ease-in-out infinite;
+}
+@keyframes shimmer {
+    0% { background-position: 100% 0; }
+    100% { background-position: 0 0; }
+}

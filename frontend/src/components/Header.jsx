@@ -5,17 +5,19 @@ import './Header.css';
 function Header({ isLoggedIn, setIsLoggedIn }) {
     const navigate = useNavigate();
     const [nickname, setNickname] = useState('');
+    const [role, setRole] = useState('');
 
     useEffect(() => {
-        if (isLoggedIn) {
-            const storedNickname = localStorage.getItem('nickname');
-            setNickname(storedNickname);
-        }
-    }, [isLoggedIn]);
+        const storedNickname = localStorage.getItem('nickname') || '';
+         const storedRole = localStorage.getItem('role') || '';
+         setNickname(storedNickname);
+         setRole(storedRole);
+        }, [isLoggedIn]);
 
     const handleLogout = () => {
         localStorage.removeItem("token");
         localStorage.removeItem("nickname");
+        localStorage.removeItem("role");
         setIsLoggedIn(false);
         alert("로그아웃 되었습니다!");
         navigate("/");
@@ -23,9 +25,19 @@ function Header({ isLoggedIn, setIsLoggedIn }) {
 
     return (
         <header className="header-container">
+            <div className="top-utility">
+                {isLoggedIn && role === 'ADMIN' && (
+                    <Link to="/admin" className="admin-pill">관리자 페이지</Link>
+                )}
+            </div>
             <Link to="/" className="logo">오늘 뭐 먹지?</Link>
+
             <div className="nav-wrapper">
-                <div className="nav-divider-up"></div>
+
+                {/* 상단 가느다란 구분선 */}
+                <div className="nav-divider-up" />
+
+                {/* 메인 내비게이션 */}
                 <nav className="nav-bar">
                     <div className="nav-menu-center">
                         <Link to="/calendar">calendar</Link>
@@ -33,6 +45,7 @@ function Header({ isLoggedIn, setIsLoggedIn }) {
                         <Link to="/community">community</Link>
                     </div>
 
+                    {/* 로그인/로그아웃, 인사말 */}
                     <div className="auth-links">
                         {isLoggedIn ? (
                             <>
@@ -48,7 +61,9 @@ function Header({ isLoggedIn, setIsLoggedIn }) {
                         )}
                     </div>
                 </nav>
-                <div className="nav-divider"></div>
+
+                {/* 하단 가느다란 구분선 */}
+                <div className="nav-divider" />
             </div>
         </header>
     );

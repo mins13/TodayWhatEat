@@ -2,7 +2,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import RecipeSidebar from "../../components/Recipe/RecipeSidebar";
-import { fetchMyRecipes } from "../../api/myRecipeApi";
+import { fetchMyRecipes, deleteMyRecipe } from "../../api/myRecipeApi"; // ✅ 추가
 import "./MyRecipePage.css";
 import searchIcon from "../../assets/Icon.jpg";
 import useRequireAuth from "../../hooks/useRequireAuth";
@@ -10,8 +10,7 @@ import useRequireAuth from "../../hooks/useRequireAuth";
 /** Wrapper: 여기서만 인증을 확인하고, 통과되면 Inner를 렌더 */
 export default function MyRecipePage() {
     const ready = useRequireAuth({ alert: true });
-    // ✅ 훅은 항상 동일하게 호출됨. 렌더 결과만 달라짐.
-    if (!ready) return null; // 스피너 넣고 싶으면 여기에 간단한 로딩 UI 가능
+    if (!ready) return null;
     return <MyRecipePageInner />;
 }
 
@@ -43,6 +42,24 @@ function MyRecipePageInner() {
         };
         load();
     }, [currentPage]);
+
+    // 새로고침 유틸
+    const refresh = async (page = currentPage) => {
+        const res = await fetchMyRecipes(page - 1, pageSize);
+        setData(res);
+    };
+
+    // 삭제
+    const onDelete = async (id) => {
+        if (!window.confirm("이 레시피를 삭제할까요? 되돌릴 수 없어요.")) return;
+        try {
+            await deleteMyRecipe(id);
+            await refresh();
+            alert("삭제되었습니다.");
+        } catch (e) {
+            alert(e?.message || "삭제에 실패했습니다.");
+        }
+    };
 
     // 로컬 검색(제목/재료명)
     const items = useMemo(() => {
@@ -130,6 +147,18 @@ function MyRecipePageInner() {
                                     .join(", ")}
                                     {(d.ingredients || []).length > 6 ? " …" : ""}
                                 </div>
+
+                                {/* ✅ 카드 삭제 버튼 (카드 클릭 방지 위해 stopPropagation) */}
+                                <button
+                                    className="card-del"
+                                    title="삭제"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        onDelete(d.id);
+                                    }}
+                                >
+                                    삭제
+                                </button>
                             </div>
                         ))}
                     </div>

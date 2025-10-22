@@ -26,6 +26,8 @@ import AdminNotices from "./pages/Admin/AdminNotices.jsx";
 import AdminRecipes from "./pages/Admin/AdminRecipes.jsx";
 import MyRecipeEditorPage from "./pages/Recipe/MyRecipeEditorPage";
 import MyRecipeDetailPage from "./pages/Recipe/MyRecipeDetailPage";
+import RecipeApprovalDetail from "./pages/Admin/RecipeApprovalDetail.jsx";
+import MyRecipeApprovalList from "./pages/Recipe/MyRecipeApprovalList.jsx";
 
 function App() {
     const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -85,11 +87,20 @@ function App() {
                                                                            setIsLoggedIn={setIsLoggedIn}><MyRecipeEditorPage/></AppLayout>} />
                 <Route path="/recipe/my/:id" element={<AppLayout isLoggedIn={isLoggedIn}
                                                                            setIsLoggedIn={setIsLoggedIn}><MyRecipeDetailPage/></AppLayout>} />
+                <Route
+                    path="/recipe/my/approvals"
+                    element={
+                        <AppLayout isLoggedIn={isLoggedIn} setIsLoggedIn={setIsLoggedIn}>
+                            <MyRecipeApprovalList />
+                        </AppLayout>
+                    }
+                />
                 <Route path="/admin" element={<AdminLayout/>}>
                     <Route index element={<AdminDashboard/>}/>
                     <Route path="users" element={<AdminUsers/>}/>
                     <Route path="posts" element={<AdminPosts/>}/>
                     <Route path="approvals/recipes" element={<RecipeApprovals/>}/>
+                    <Route path="approvals/recipes/:id" element={<RecipeApprovalDetail />} />
                     <Route path="recipes" element={<AdminRecipes/>}/>
                     <Route path="notices" element={<AdminNotices/>}/>
                 </Route>

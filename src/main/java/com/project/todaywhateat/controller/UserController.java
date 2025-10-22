@@ -39,6 +39,7 @@ public class UserController {
         response.put("token", token);
         response.put("nickname", user.getNickname());
         response.put("username", user.getUsername());
+        response.put("role", user.getRole());
         return response;
     }
 

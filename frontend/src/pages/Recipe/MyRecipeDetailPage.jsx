@@ -1,7 +1,13 @@
+// src/pages/Recipe/MyRecipeDetailPage.jsx
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import RecipeSidebar from "../../components/Recipe/RecipeSidebar";
-import { getMyRecipe, requestMyRecipeApproval } from "../../api/myRecipeApi";
+import {
+    getMyRecipe,
+    requestMyRecipeApproval,
+    getMyRecipeApprovalStatus,
+    deleteMyRecipe, // ✅ 추가
+} from "../../api/myRecipeApi";
 import "./MyRecipeDetailPage.css";
 import useRequireAuth from "../../hooks/useRequireAuth";
 
@@ -33,6 +39,20 @@ function MyRecipeDetailPageInner() {
     const [showSubmitModal, setShowSubmitModal] = useState(false);
     const [submitPending, setSubmitPending] = useState(false);
 
+    /** ✅ 서버 보관 승인상태 (새로고침해도 유지됨) */
+    const [approval, setApproval] = useState(null); // {status, rejectionReason, draftId, updatedAt}
+
+    // ✅ 제출 가능 여부
+    const canSubmit = (rec) => {
+        if (!rec) return false;
+        const hasTitle = !!(rec.title && rec.title.trim());
+        const hasImage = !!(rec.imageUrl && rec.imageUrl.trim());
+        const hasIngredients =
+            Array.isArray(rec.ingredients) && rec.ingredients.length > 0;
+        const hasSteps = Array.isArray(rec.steps) && rec.steps.length > 0;
+        return hasTitle && hasImage && hasIngredients && hasSteps;
+    };
+
     useEffect(() => {
         if (!id) return;
         (async () => {
@@ -44,8 +64,57 @@ function MyRecipeDetailPageInner() {
                 console.error(e);
                 setData(null);
             }
+
+            try {
+                const st = await getMyRecipeApprovalStatus(id); // ★ 상태 로드
+                setApproval(st);
+            } catch {
+                /* ignore */
+            }
         })();
     }, [id]);
+
+    const isPending = approval?.status === "PENDING";
+    const isRejected = approval?.status === "REJECTED";
+    const isApproved = approval?.status === "APPROVED";
+
+    const onOpenSubmit = () => {
+        if (!canSubmit(data)) {
+            alert(
+                "승인 신청을 하려면 제목/대표이미지/재료/레시피 단계가 모두 필요합니다."
+            );
+            return;
+        }
+        setShowSubmitModal(true);
+    };
+
+    const doSubmit = async () => {
+        if (submitPending) return;
+        setSubmitPending(true);
+        try {
+            await requestMyRecipeApproval(id); // ★ my-recipe id로 호출
+            const st = await getMyRecipeApprovalStatus(id); // 상태 새로고침
+            setApproval(st);
+            setShowSubmitModal(false);
+            alert("승인 신청이 접수되었습니다. 심사는 최대 7일 이상 소요될 수 있어요.");
+        } catch (e) {
+            alert(e?.message || "승인 신청에 실패했습니다.");
+        } finally {
+            setSubmitPending(false);
+        }
+    };
+
+    // ✅ 삭제
+    const doDelete = async () => {
+        if (!window.confirm("정말 삭제하시겠어요? 복구할 수 없습니다.")) return;
+        try {
+            await deleteMyRecipe(id);
+            alert("삭제되었습니다.");
+            navigate("/recipe/my");
+        } catch (e) {
+            alert(e?.message || "삭제에 실패했습니다.");
+        }
+    };
 
     const ingredients = useMemo(() => {
         const list = data?.ingredients ?? [];
@@ -62,7 +131,7 @@ function MyRecipeDetailPageInner() {
         const list = data?.steps ?? [];
         return list
             .slice()
-            .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
+            .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0)) // ★ sortOrder 사용
             .map((s) => s?.content ?? "")
             .filter(Boolean);
     }, [data]);
@@ -76,38 +145,6 @@ function MyRecipeDetailPageInner() {
             </div>
         );
 
-    const canSubmit = (rec) => {
-        if (!rec) return false;
-        const hasTitle = !!(rec.title && rec.title.trim());
-        const hasImage = !!(rec.imageUrl && rec.imageUrl.trim());
-        const hasIngredients =
-            Array.isArray(rec.ingredients) && rec.ingredients.length > 0;
-        const hasSteps = Array.isArray(rec.steps) && rec.steps.length > 0;
-        return hasTitle && hasImage && hasIngredients && hasSteps;
-    };
-
-    const onOpenSubmit = () => {
-        if (!canSubmit(data)) {
-            alert("승인 신청을 하려면 제목/대표이미지/재료/레시피 단계가 모두 필요합니다.");
-            return;
-        }
-        setShowSubmitModal(true);
-    };
-
-    const doSubmit = async () => {
-        if (submitPending) return;
-        setSubmitPending(true);
-        try {
-            await requestMyRecipeApproval(id);
-            setShowSubmitModal(false);
-            alert("승인 신청이 접수되었습니다. 심사는 최대 7일 이상 소요될 수 있어요.");
-        } catch (e) {
-            alert(e?.message || "승인 신청에 실패했어요.");
-        } finally {
-            setSubmitPending(false);
-        }
-    };
-
     return (
         <div className="recipe-detail-container">
             <div className="recipe-detail-wrapper">
@@ -116,20 +153,59 @@ function MyRecipeDetailPageInner() {
                 </div>
 
                 <div className="recipe-detail-right-panel">
-                    {/* 상단 타이틀 + 버튼 */}
+                    {/* ✅ 상태 배너 */}
+                    {isRejected && (
+                        <div className="banner danger" style={{ marginBottom: 12 }}>
+                            <b>승인 반려됨</b> — 사유:{" "}
+                            {approval?.rejectionReason || "형식 미흡"} / 수정 후 다시 신청해주세요.
+                        </div>
+                    )}
+                    {isPending && (
+                        <div className="banner info" style={{ marginBottom: 12 }}>
+                            관리자 검토 중입니다. (승인 대기)
+                        </div>
+                    )}
+                    {isApproved && (
+                        <div className="banner success" style={{ marginBottom: 12 }}>
+                            승인 완료! 전체 레시피에 반영되었습니다.
+                        </div>
+                    )}
+
+                    {/* 헤더 버튼들 */}
                     <div className="detail-head">
-                        <h2 className="recipe-detail-title">{data.title || "제목 없음"}</h2>
+                        <h2 className="recipe-detail-title">{data?.title || "제목 없음"}</h2>
                         <div className="detail-head-actions">
-                            <button className="btn-outline" onClick={() => navigate("/recipe/my")}>
+                            <button
+                                className="btn-outline"
+                                onClick={() => navigate("/recipe/my")}
+                            >
                                 목록으로
                             </button>
+
+                            {/* ✅ 삭제 버튼 (필요 시 disabled 제거 가능) */}
+                            <button
+                                className="btn-danger"
+                                onClick={doDelete}
+                                disabled={isPending}
+                                title={isPending ? "승인 대기 중에는 삭제할 수 없어요." : ""}
+                            >
+                                삭제
+                            </button>
+
                             <button
                                 className="btn-primary"
                                 onClick={() => navigate(`/recipe/my/${id}/edit`)}
+                                disabled={isPending}
+                                title={isPending ? "승인 대기 중에는 수정할 수 없어요." : ""}
                             >
                                 수정
                             </button>
-                            <button className="btn-approve" onClick={onOpenSubmit}>
+                            <button
+                                className="btn-approve"
+                                onClick={onOpenSubmit}
+                                disabled={isPending}
+                                title={isPending ? "이미 승인 대기 중입니다." : ""}
+                            >
                                 승인 신청
                             </button>
                         </div>
@@ -169,7 +245,9 @@ function MyRecipeDetailPageInner() {
                     <div className="recipe-detail-description">
                         <h4>레시피</h4>
                         <ol>
-                            {steps.map((step, i) => (!showAll && i >= 3 ? null : <li key={i}>{step}</li>))}
+                            {steps.map((step, i) =>
+                                !showAll && i >= 3 ? null : <li key={i}>{step}</li>
+                            )}
                         </ol>
 
                         {steps.length > 3 && (
@@ -188,12 +266,15 @@ function MyRecipeDetailPageInner() {
                         className="approve-modal-backdrop"
                         onClick={() => !submitPending && setShowSubmitModal(false)}
                     >
-                        <div className="approve-modal-card" onClick={(e) => e.stopPropagation()}>
+                        <div
+                            className="approve-modal-card"
+                            onClick={(e) => e.stopPropagation()}
+                        >
                             <h3>승인 신청 전 확인</h3>
                             <ul className="approve-bullets">
                                 <li>
-                                    레시피 <b>제목</b>, <b>대표 사진</b>, <b>재료</b>, <b>레시피 순서</b>가
-                                    모두 있어야 합니다.
+                                    레시피 <b>제목</b>, <b>대표 사진</b>, <b>재료</b>,{" "}
+                                    <b>레시피 순서</b>가 모두 있어야 합니다.
                                 </li>
                                 <li>
                                     레시피 등록 승인 심사는 <b>최대 7일 이상</b> 소요될 수 있습니다.
@@ -208,7 +289,11 @@ function MyRecipeDetailPageInner() {
                                 >
                                     취소
                                 </button>
-                                <button className="btn-approve" disabled={submitPending} onClick={doSubmit}>
+                                <button
+                                    className="btn-approve"
+                                    disabled={submitPending}
+                                    onClick={doSubmit}
+                                >
                                     {submitPending ? "신청 중..." : "정말 승인 신청"}
                                 </button>
                             </div>

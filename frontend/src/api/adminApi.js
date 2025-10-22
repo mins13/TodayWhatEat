@@ -16,3 +16,15 @@ export const fetchAdminPosts = async ({page=1, size=10, q=""}={}) =>
 
 export const deleteAdminPost = async (id) =>
     (await http.delete(`/api/admin/posts/${id}`)).data;
+
+/** 미니 대시보드 지표 */
+export async function fetchAdminMini() {
+    const res = await http.get("/api/admin/mini");
+    return res.data;
+}
+
+/** 최근 공지 n개: [{id, title, createdAt}] */
+export async function fetchRecentNotices(limit = 5) {
+    const res = await http.get("/api/admin/notices/recent", { params: { limit } });
+    return res.data;
+}

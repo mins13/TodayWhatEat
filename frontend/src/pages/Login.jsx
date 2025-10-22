@@ -25,6 +25,7 @@ function Login({ setIsLoggedIn }) {
             console.log("✅ 유저아이디:", response.username); // 이게 null로 뜨는지 확인
             localStorage.setItem("userId", response.username);
             localStorage.setItem("accessToken", response.accessToken);
+            localStorage.setItem("role", response.role);
             setIsLoggedIn(true);
             navigate("/");
         } catch (error) {

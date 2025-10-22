@@ -8,6 +8,8 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDateTime;
+
 public interface PostRepo extends JpaRepository<Post, Long>, JpaSpecificationExecutor<Post> {
 
     Page<Post> findByTitleContainingIgnoreCaseOrContentContainingIgnoreCase(
@@ -30,4 +32,7 @@ public interface PostRepo extends JpaRepository<Post, Long>, JpaSpecificationExe
     Page<Post> searchByBoardAndTitleOrContent(@Param("boardCode") String boardCode,
                                               @Param("q") String q,
                                               Pageable pageable);
+
+    long countByCreatedAtBetween(LocalDateTime start, LocalDateTime end);
 }
+

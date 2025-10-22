@@ -77,3 +77,12 @@
 .myrecipes .write-button:disabled{
     opacity:.55; cursor:not-allowed; filter:grayscale(.2) brightness(.98);
 }
+/* 카드 삭제 버튼 */
+.myrecipes-card { position: relative; }
+.card-del{
+    position: absolute; right: 14px; top: 12px;
+    border: 1px solid #e5e7eb; background: #fff;
+    border-radius: 8px; height: 30px; padding: 0 10px;
+    cursor: pointer; font-size: 14px;
+}
+.card-del:hover{ background: #fff5f5; border-color: #fecaca; }
