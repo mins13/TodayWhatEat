@@ -21,3 +21,33 @@
     padding: 0.5rem;
     font-family: inherit;
 }
+.memo-actions {
+    margin-top: 10px;
+    display: flex;
+    justify-content: flex-end;
+}
+
+.btn-outline {
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    background: #fff;
+    color: #333;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: background .15s ease, border-color .15s ease, box-shadow .15s ease;
+}
+
+.btn-outline:hover {
+    background: #f7f7f7;
+    border-color: #d0d0d0;
+}
+
+.btn-outline:active {
+    background: #efefef;
+}
+
+.btn-outline:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(0,0,0,.05);
+}

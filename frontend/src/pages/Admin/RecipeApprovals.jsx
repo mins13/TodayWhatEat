@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { fetchPendingDrafts, approveDraft, rejectDraft } from "../../api/adminRecipeDraftApi";
-import "./admin.css"; // ← 방금 올린 admin.css
+import "./admin.css";
 
 export default function RecipeApprovals() {
     const [data, setData] = useState(null);
