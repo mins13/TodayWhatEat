@@ -28,6 +28,7 @@ import MyRecipeEditorPage from "./pages/Recipe/MyRecipeEditorPage";
 import MyRecipeDetailPage from "./pages/Recipe/MyRecipeDetailPage";
 import RecipeApprovalDetail from "./pages/Admin/RecipeApprovalDetail.jsx";
 import MyRecipeApprovalList from "./pages/Recipe/MyRecipeApprovalList.jsx";
+import MyAccount from "./pages/MyAccount.jsx";
 
 function App() {
     const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -51,6 +52,12 @@ function App() {
                 <Route path="/login" element={
                     <AppLayout isLoggedIn={isLoggedIn} setIsLoggedIn={setIsLoggedIn}>
                         <Login setIsLoggedIn={setIsLoggedIn}/>
+                    </AppLayout>
+                }/>
+
+                <Route path="/account" element={
+                    <AppLayout isLoggedIn={isLoggedIn} setIsLoggedIn={setIsLoggedIn}>
+                        <MyAccount/>
                     </AppLayout>
                 }/>
                 <Route path="/signup" element={<AppLayout isLoggedIn={isLoggedIn}

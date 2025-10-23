@@ -49,7 +49,9 @@ function Header({ isLoggedIn, setIsLoggedIn }) {
                     <div className="auth-links">
                         {isLoggedIn ? (
                             <>
-                                <span className="welcome-text">{nickname}님 안녕하세요!</span>
+      <span className="welcome-text">
+        <Link to="/account" className="nav-link underline">{nickname}님 안녕하세요!</Link>
+      </span>
                                 <span className="nav-link" onClick={handleLogout}>로그아웃</span>
                             </>
                         ) : (
@@ -60,6 +62,7 @@ function Header({ isLoggedIn, setIsLoggedIn }) {
                             </>
                         )}
                     </div>
+
                 </nav>
 
                 {/* 하단 가느다란 구분선 */}

@@ -1,0 +1,25 @@
+/* src/pages/Account/MyAccount.css */
+.account-wrap { max-width: 640px; margin: 32px auto; padding: 0 16px; }
+.account-wrap h2 { font-size: 24px; margin-bottom: 16px; }
+
+.card { background:#fff; border:1px solid #eee; border-radius:12px; padding:16px; margin-bottom:16px; }
+.card h3 { font-size:18px; margin-bottom:12px; }
+
+.field { display:flex; flex-direction:column; gap:6px; margin-bottom:12px; }
+.field label { font-size:13px; color:#666; }
+.field input {
+    border:1px solid #ddd; border-radius:8px; padding:10px; font-size:14px;
+}
+
+.actions { display:flex; justify-content:flex-end; margin-top:8px; }
+.btn-primary {
+    padding:10px 16px; border:none; border-radius:8px; background:#111; color:#fff; cursor:pointer;
+}
+.btn-primary:disabled { opacity:.6; cursor:not-allowed; }
+
+.msg { font-size:13px; color:#0a7; margin:6px 0 12px; }
+
+.danger-link {
+    background:none; border:none; color:#d33; font-size:13px; cursor:pointer; padding:4px; margin-top:8px;
+}
+.danger-link:hover { text-decoration:underline; }
