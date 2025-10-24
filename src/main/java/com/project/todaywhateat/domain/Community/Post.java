@@ -25,11 +25,11 @@ public class Post {
     @Column(nullable=false, length=50)
     private String authorName;
 
-    @Column(nullable=false, length=200)
+    @Column(length = 200, nullable = false)
     private String title;
 
     @Lob
-    @Column(nullable=false)
+    @Column(columnDefinition = "LONGTEXT", nullable = false)
     private String content;
 
     private int likesCount = 0;
@@ -56,4 +56,7 @@ public class Post {
     void onUpdate() {
         this.updatedAt = LocalDateTime.now();
     }
+
+
+
 }

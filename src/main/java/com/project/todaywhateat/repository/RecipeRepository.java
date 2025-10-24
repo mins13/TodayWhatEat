@@ -1,4 +1,3 @@
-// src/main/java/com/project/todaywhateat/repository/RecipeRepository.java
 package com.project.todaywhateat.repository;
 
 import com.project.todaywhateat.domain.Recipe;
@@ -34,7 +33,6 @@ public interface RecipeRepository extends JpaRepository<Recipe, Long> {
     @Query("select r from Recipe r where r.id = :id")
     Optional<Recipe> findByIdWithTags(@Param("id") Long id);
 
-    // ✅ 상세 화면용: ingredients/steps/tags를 한 번에 불러와 N+1 제거
     @Query("""
       select distinct r
       from Recipe r
@@ -87,4 +85,6 @@ public interface RecipeRepository extends JpaRepository<Recipe, Long> {
         r.id desc
     """)
     Page<RecipeCardDto> findCards(@Param("sort") String sort, Pageable pageable);
+
+
 }

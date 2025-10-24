@@ -1,3 +1,4 @@
+// com.project.todaywhateat.controller.CommunityController
 package com.project.todaywhateat.controller;
 
 import com.project.todaywhateat.dto.Community.*;
@@ -5,6 +6,7 @@ import com.project.todaywhateat.repository.Community.PostLikeRepo;
 import com.project.todaywhateat.service.CommunityService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -20,8 +22,7 @@ public class CommunityController {
     private final CommunityService svc;
     private final PostLikeRepo likeRepo;
 
-
-    private static final Set<String> ALLOWED_BOARDS = Set.of("free","recipe","info","notice");
+    private static final Set<String> ALLOWED_BOARDS = Set.of("free", "recipe", "info", "notice");
 
     /* ---------- 공용 유틸 ---------- */
     private void validateBoard(String board) {
@@ -30,18 +31,12 @@ public class CommunityController {
         }
     }
 
-
-    /**
-     * Authentication에서 안전하게 userId 추출.
-     * - 커스텀 UserDetails를 쓴다면 그 타입으로 캐스팅해서 getId()를 꺼내세요.
-     * - 그렇지 않고 JWT subject가 숫자라면 parseLong 시도.
-     * - 어떤 경우에도 못 얻으면 401 반환.
-     */
+    /** Authentication에서 username(=Jwt subject) 추출. */
     private String requireUsername(Authentication auth) {
         if (auth == null || auth.getName() == null || auth.getName().isBlank()) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "로그인이 필요합니다.");
         }
-        return auth.getName(); // JwtUtil.getUsername(token) 과 동일
+        return auth.getName();
     }
 
     /* ---------- 목록 ---------- */
@@ -65,59 +60,81 @@ public class CommunityController {
                                              Authentication auth) {
         validateBoard(board);
         String username = (auth != null ? auth.getName() : null);
-        return svc.listComments(id, page, size, username);   // ← mine 포함
+        return svc.listComments(id, page, size, username);   // mine 포함
     }
 
     /* ---------- 상세(조회수 +1) ---------- */
     @GetMapping("/{board}/{id}")
     public PostDetailDto detail(@PathVariable String board,
                                 @PathVariable Long id,
-                                org.springframework.security.core.Authentication auth) {
+                                Authentication auth) {
         validateBoard(board);
         String username = (auth != null ? auth.getName() : null);
-        return svc.getAndIncreaseView(board, id, username); // ✅ liked 포함해서 리턴
+        return svc.getAndIncreaseView(board, id, username); // liked 포함
     }
 
-    /* ---------- 작성 ---------- */
-    @PostMapping("/{board}")
+    /* ---------- 작성(JSON) : 멀티파트와 경로 동일, consumes 로 분리 ---------- */
+    @PostMapping(path = "/{board}", consumes = MediaType.APPLICATION_JSON_VALUE)
     @PreAuthorize("isAuthenticated()")
-    public Map<String, Long> create(@PathVariable String board,
-                                    @RequestBody CreatePostReq req,
-                                    Authentication auth) {
+    public Map<String, Object> createJson(
+            @PathVariable String board,
+            @RequestBody CreatePostReq req,
+            Authentication auth
+    ) {
         validateBoard(board);
         String username = requireUsername(auth);
-        Long id = svc.createByUsername(board, username, req); // ← 신규 메서드
+        if (req == null || req.title() == null || req.title().isBlank()
+                || req.content() == null || req.content().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "title, content는 필수입니다.");
+        }
+        Long id = svc.create(board, req.title(), req.content(), req.authorName(), req.recipeId(), null, auth);
         return Map.of("id", id);
     }
 
-    @PutMapping("/{board}/{id}")
-    @PatchMapping("/{board}/{id}")
+    /* ---------- 수정 ---------- */
+    @PutMapping(path = "/{board}/{id}", consumes = MediaType.APPLICATION_JSON_VALUE)
     @PreAuthorize("isAuthenticated()")
-    public void update(@PathVariable String board, @PathVariable Long id,
-                       @RequestBody UpdatePostReq req, Authentication auth) {
+    public void updatePut(@PathVariable String board,
+                          @PathVariable Long id,
+                          @RequestBody UpdatePostReq req,
+                          Authentication auth) {
         validateBoard(board);
         String username = requireUsername(auth);
         svc.updateByUsername(board, id, username, req);
     }
 
+    @PatchMapping(path = "/{board}/{id}", consumes = MediaType.APPLICATION_JSON_VALUE)
+    @PreAuthorize("isAuthenticated()")
+    public void updatePatch(@PathVariable String board,
+                            @PathVariable Long id,
+                            @RequestBody UpdatePostReq req,
+                            Authentication auth) {
+        validateBoard(board);
+        String username = requireUsername(auth);
+        svc.updateByUsername(board, id, username, req);
+    }
 
+    /* ---------- 삭제 ---------- */
     @DeleteMapping("/{board}/{id}")
     @PreAuthorize("isAuthenticated()")
     public void delete(@PathVariable String board, @PathVariable Long id, Authentication auth) {
         validateBoard(board);
         String username = requireUsername(auth);
-        svc.deleteByUsername(board, id, username);            // ← 신규 메서드
+        svc.deleteByUsername(board, id, username);
     }
 
+    /* ---------- 좋아요 ---------- */
     @PostMapping("/{board}/{id}/like")
     @PreAuthorize("isAuthenticated()")
-    public Map<String,Object> toggleLike(@PathVariable String board, @PathVariable Long id, Authentication auth) {
+    public Map<String, Object> toggleLike(@PathVariable String board, @PathVariable Long id, Authentication auth) {
+        validateBoard(board);
         String username = requireUsername(auth);
         boolean liked = svc.toggleLikeByUsername(board, id, username);
-        long count = likeRepo.countByPost_Id(id); // repo에 메서드 있음
+        long count = likeRepo.countByPost_Id(id);
         return Map.of("liked", liked, "count", count);
     }
 
+    /* ---------- 댓글 ---------- */
     @PostMapping("/{board}/{id}/comments")
     @PreAuthorize("isAuthenticated()")
     public Map<String, Long> addComment(@PathVariable String board, @PathVariable Long id,
@@ -128,19 +145,19 @@ public class CommunityController {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "content는 필수입니다.");
         }
         String username = requireUsername(auth);
-        Long cid = svc.addCommentByUsername(id, username, req); // ← 신규 메서드
+        Long cid = svc.addCommentByUsername(id, username, req);
         return Map.of("id", cid);
     }
 
     @PatchMapping("/{board}/{id}/comments/{commentId}")
     @PreAuthorize("isAuthenticated()")
     public void updateComment(@PathVariable String board, @PathVariable Long id,
-                              @PathVariable Long commentId, @RequestBody Map<String,String> body,
+                              @PathVariable Long commentId, @RequestBody Map<String, String> body,
                               Authentication auth) {
         validateBoard(board);
         String username = requireUsername(auth);
-        String content = body.getOrDefault("content","");
-        svc.updateCommentByUsername(commentId, username, content);     // ← 신규 메서드
+        String content = body.getOrDefault("content", "");
+        svc.updateCommentByUsername(commentId, username, content);
     }
 
     @DeleteMapping("/{board}/{id}/comments/{commentId}")
@@ -149,8 +166,6 @@ public class CommunityController {
                               @PathVariable Long commentId, Authentication auth) {
         validateBoard(board);
         String username = requireUsername(auth);
-        svc.deleteCommentByUsername(commentId, username);              // ← 신규 메서드
+        svc.deleteCommentByUsername(commentId, username);
     }
-
-
 }

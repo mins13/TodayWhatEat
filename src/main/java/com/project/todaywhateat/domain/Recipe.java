@@ -1,3 +1,4 @@
+// src/main/java/com/project/todaywhateat/domain/Recipe.java
 package com.project.todaywhateat.domain;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -25,7 +26,12 @@ public class Recipe {
     @Column(unique = true)
     private String title;
 
+    // 프론트의 mainImageUrl에 대응되는 실제 컬럼
     private String image;
+
+    // 🔹 작성자 식별자(로그인 사용자 id와 매칭)
+    @Column(name = "author_id")
+    private Long authorId;
 
     @Column(name = "likes_count", nullable = false)
     private long likesCount;
@@ -33,13 +39,13 @@ public class Recipe {
     @Column(name = "view_count", nullable = false)
     private long viewCount;
 
-    /* ===== 연관관계 (단 한 번만 선언) ===== */
+    /* ===== 연관관계 ===== */
     @OneToMany(mappedBy = "recipe",
             cascade = CascadeType.ALL,
             orphanRemoval = true,
             fetch = FetchType.LAZY)
     @BatchSize(size = 100)
-    @JsonIgnore        // 리스트 응답에서 지연 로딩 방지
+    @JsonIgnore
     @Builder.Default
     private List<RecipeIngredient> ingredients = new ArrayList<>();
 
