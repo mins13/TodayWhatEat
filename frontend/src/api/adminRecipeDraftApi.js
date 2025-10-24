@@ -1,22 +1,33 @@
 // src/api/adminRecipeDraftApi.js
 import { http } from "./http";
 
-export async function fetchPendingDrafts(page = 0, size = 20) {
-    const res = await http.get("/api/admin/recipe-drafts/pending", { params: { page, size } });
+/**
+ * @param {{page?:number, size?:number, signal?:AbortSignal}} opts
+ */
+export async function fetchPendingDrafts(opts = {}) {
+    const { page = 0, size = 20, signal } = opts;
+    const res = await http.get("/api/admin/recipe-drafts/pending", {
+        params: { page, size },
+        signal,                    // ✅ axios가 AbortSignal 인식
+    });
     return res.data;
 }
 
-export async function fetchDraftById(id) {
-    const res = await http.get(`/api/admin/recipe-drafts/${id}`);
+export async function fetchDraftById(id, { signal } = {}) {
+    const res = await http.get(`/api/admin/recipe-drafts/${id}`, { signal });
     return res.data;
 }
 
-export async function approveDraft(id) {
-    const res = await http.post(`/api/admin/recipe-drafts/${id}/approve`, {});
+export async function approveDraft(id, { signal } = {}) {
+    const res = await http.post(`/api/admin/recipe-drafts/${id}/approve`, {}, { signal });
     return res.data;
 }
 
-export async function rejectDraft(id, reason = "형식 미흡") {
-    const res = await http.post(`/api/admin/recipe-drafts/${id}/reject`, { reason });
+export async function rejectDraft(id, reason = "형식 미흡", { signal } = {}) {
+    const res = await http.post(
+        `/api/admin/recipe-drafts/${id}/reject`,
+        { reason },
+        { signal }
+    );
     return res.data;
 }

@@ -1,4 +1,5 @@
-import React, { useEffect, useState, useMemo } from "react";
+// src/pages/recipe/RecipeDetailPage.jsx
+import React, { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import RecipeSidebar from "../../components/Recipe/RecipeSidebar";
 import ConfirmModal from "../../components/Recipe/ConfirmModal";
@@ -15,6 +16,16 @@ const IMG_PLACEHOLDER =
         font-family='Arial' font-size='16' fill='#999'>이미지를 불러올 수 없습니다</text>
     </svg>`
     );
+
+// 캐시 키/TTL
+const TTL_MS = 1000 * 60 * 5; // 5분
+const keyDetail = (id) => `rcp:detail:${id}`;
+const keyRec = (id) => `rcp:rec:${id}`;
+
+// 안전 파서
+const safeJson = (s) => {
+    try { return JSON.parse(s); } catch { return null; }
+};
 
 export default function RecipeDetailPage() {
     const { recipeId } = useParams();
@@ -34,58 +45,143 @@ export default function RecipeDetailPage() {
     const [views, setViews] = useState(0);
     const [likePending, setLikePending] = useState(false);
 
+    // ---------- 1) 캐시 프리하이드레이션 ----------
     useEffect(() => {
         if (!recipeId) return;
 
-        // 좋아요 상태/카운트 로드
-        (async () => {
-            try {
-                const { liked, likes } = await fetchLikeStatus(recipeId);
-                setLiked(liked);
-                setLikes(likes);
-            } catch (e) {
-                // 비로그인(401)일 수 있음: 무시하거나 안내
-                // console.warn(e);
-            }
-        })();
+        const cachedDetail = safeJson(sessionStorage.getItem(keyDetail(recipeId)));
+        if (cachedDetail && Date.now() - (cachedDetail.ts || 0) < TTL_MS) {
+            const data = cachedDetail.data || {};
+            setRecipe(data);
+            setViews(Number(data?.viewCount ?? 0));
+            setLikes(Number(data?.likesCount ?? 0));
+            const url = data?.image || data?.imageUrl || data?.thumbnail || null;
+            setImgSrc(url || IMG_PLACEHOLDER);
+            setIngredients(
+                (data.ingredients || []).map((i) => ({
+                    name: i?.name ?? "",
+                    amount: i?.amount ?? "",
+                }))
+            );
+            setSeasonings([]);
+        }
 
-        // 조회수 1회 처리 (브라우저당/레시피별)
-        const key = `vw:${recipeId}`;
-        const last = Number(localStorage.getItem(key) || 0);
-        const now = Date.now();
-        const TTL = 1000 * 60 * 60 * 6; // 6시간 안에 또 들어오면 +1 안함 (임의)
-        if (!last || now - last > TTL) {
-            addView(recipeId)
-                .then(({ views }) => setViews(views))
-                .catch(() => { /* 비로그인 등 무시 가능 */ });
-            localStorage.setItem(key, String(now));
+        const cachedRec = safeJson(sessionStorage.getItem(keyRec(recipeId)));
+        if (cachedRec && Date.now() - (cachedRec.ts || 0) < TTL_MS) {
+            setRecommended(Array.isArray(cachedRec.data) ? cachedRec.data : []);
         }
     }, [recipeId]);
 
+    // ---------- 2) 백그라운드 재검증 ----------
+    useEffect(() => {
+        if (!recipeId) return;
+        const ac = new AbortController();
+
+        (async () => {
+            try {
+                // 상세/추천 병렬
+                const [recipeRes, recRes] = await Promise.allSettled([
+                    fetch(`http://localhost:8080/api/recipes/${recipeId}`, { signal: ac.signal }),
+                    fetch(`http://localhost:8080/api/recipes/${recipeId}/recommendations?limit=3`, { signal: ac.signal }),
+                ]);
+
+                // 상세 성공 시 반영 + 캐시 저장
+                if (recipeRes.status === "fulfilled" && recipeRes.value.ok) {
+                    const data = await recipeRes.value.json();
+                    setRecipe(data);
+                    setViews(Number(data?.viewCount ?? 0));
+                    setLikes(Number(data?.likesCount ?? 0));
+
+                    const url = data?.image || data?.imageUrl || data?.thumbnail || null;
+                    setImgSrc(url || IMG_PLACEHOLDER);
+                    setIngredients(
+                        (data.ingredients || []).map((i) => ({
+                            name: i?.name ?? "",
+                            amount: i?.amount ?? "",
+                        }))
+                    );
+                    setSeasonings([]);
+
+                    sessionStorage.setItem(keyDetail(recipeId), JSON.stringify({ ts: Date.now(), data }));
+                }
+
+                // 추천 성공 시 반영 + 캐시 저장(실패해도 상세엔 영향 X)
+                if (recRes.status === "fulfilled" && recRes.value.ok) {
+                    const recData = await recRes.value.json();
+                    const list = Array.isArray(recData) ? recData : [];
+                    setRecommended(list);
+                    sessionStorage.setItem(keyRec(recipeId), JSON.stringify({ ts: Date.now(), data: list }));
+                }
+            } catch (e) {
+                if (e?.name !== "AbortError") console.error(e);
+            }
+        })();
+
+        return () => ac.abort();
+    }, [recipeId]);
+
+    // ---------- 3) 비-크리티컬 요청 지연(초기 페인트 후) ----------
+    useEffect(() => {
+        if (!recipeId) return;
+
+        const run = () => {
+            // 좋아요 상태/카운트
+            fetchLikeStatus(recipeId)
+                .then(({ liked, likes }) => {
+                    setLiked(!!liked);
+                    setLikes(Number(likes ?? 0));
+                })
+                .catch(() => { /* 비로그인 등 무시 */ });
+
+            // 조회수 증가 (6시간 TTL 로컬키로 중복 방지)
+            const key = `vw:${recipeId}`;
+            const last = Number(localStorage.getItem(key) || 0);
+            const now = Date.now();
+            const TTL = 1000 * 60 * 60 * 6;
+            if (!last || now - last > TTL) {
+                addView(recipeId)
+                    .then(({ views }) => setViews(Number(views ?? 0)))
+                    .catch(() => {});
+                localStorage.setItem(key, String(now));
+            }
+        };
+
+        // idle에 실행 시도 → 없으면 타임아웃으로 폴백
+        if ("requestIdleCallback" in window) {
+            // @ts-ignore
+            const id = window.requestIdleCallback(run, { timeout: 1200 });
+            return () => window.cancelIdleCallback && window.cancelIdleCallback(id);
+        } else {
+            const t = setTimeout(run, 0);
+            return () => clearTimeout(t);
+        }
+    }, [recipeId]);
+
+    // 좋아요 토글
     const onClickLike = async (e) => {
         e.stopPropagation();
         if (likePending) return;
         setLikePending(true);
         try {
             const { liked, likes } = await toggleLike(recipeId);
-            setLiked(liked);
-            setLikes(likes);
-        } catch (e) {
+            setLiked(!!liked);
+            setLikes(Number(likes ?? 0));
+        } catch {
             alert("좋아요 처리에 실패했어요. 로그인 상태를 확인해주세요.");
         } finally {
             setLikePending(false);
         }
     };
 
-
-
+    // 텍스트에서 수량/단위 분리
     function splitAmount(str = "") {
         const s = String(str).trim();
         const m = s.match(/^([\d.]+)\s*(.*)$/);
         if (!m) return { value: 1, unit: "" };
         return { value: parseFloat(m[1]) || 1, unit: (m[2] || "").trim() };
     }
-    // 이름/상태 정규화 유틸 (파일 상단 util들 근처에 추가)
+
+    // 냉장고 재고 조회/차감은 모달 확인 때만 호출 → 초기 로드에 영향 없음
     const normName = (s) => String(s ?? "").trim().toLowerCase();
     const parseQty = (v) => {
         if (typeof v === "number") return isFinite(v) ? v : 0;
@@ -93,77 +189,51 @@ export default function RecipeDetailPage() {
         return m ? parseFloat(m[0]) : 0;
     };
 
-// 냉장고 재고 조회: 이름이 같고, USED/0개는 제외하여 총 보유량 계산
     async function hasIngredientInfo(name) {
         const token = localStorage.getItem("token");
         const res = await fetch("http://localhost:8080/fridge/list", {
             headers: { Authorization: `Bearer ${token}` },
         });
         if (!res.ok) return { exists: false, total: 0 };
-
         const list = await res.json();
         const target = normName(name);
-
         const same = (Array.isArray(list) ? list : []).filter(
             (it) => normName(it?.ingredientName) === target
         );
-
-        // 🔑 상태(status)는 무시하고, 수량이 0보다 큰 것만 합산
         const total = same.reduce((acc, it) => {
             const q = parseQty(it?.quantity);
             return q > 0 ? acc + q : acc;
         }, 0);
-
-        // 디버깅 원하면 유지
-        console.log("[hasIngredientInfo]", { name, target, same, total });
-
         return { exists: total > 0, total };
     }
 
     async function consumeItems(items) {
-        console.log("Sending the following items to the server:", items);
         const token = localStorage.getItem("token");
         const res = await fetch("http://localhost:8080/fridge/consume", {
             method: "PATCH",
             headers: {
                 "Content-Type": "application/json",
-                "Authorization": `Bearer ${token}`
+                Authorization: `Bearer ${token}`,
             },
             body: JSON.stringify({ items }),
         });
-        if (!res.ok) {
-            const errorData = await res.json(); // 서버의 오류 메시지 확인
-            console.error("Error details:", errorData);
-            throw new Error("재고 차감 실패");
-        }
+        if (!res.ok) throw new Error("재고 차감 실패");
         return await res.json();
     }
 
     const [pendingDefault, setPendingDefault] = useState({ amount: 1, unit: "개" });
-    // ---- helpers -------------------------------------------------
-    function parseAmount(str = "") {
-        // "30g", "1.5 L", "5 개" → { value: 30, unit: "g" } 등
-        const s = String(str).trim();
-        const m = s.match(/^([\d.]+)\s*(.*)$/);
-        if (!m) return { value: 1, unit: "" };
-        return { value: parseFloat(m[1]), unit: (m[2] || "").trim() };
-    }
-
-
 
     const handleConfirmDelete = async (amountFromModal, unitFromModal) => {
         try {
             if (isAllDelete) {
-                // 전체 차감 로직
-                const items = ingredients.map(ing => {
+                const items = ingredients.map((ing) => {
                     const { value, unit } = splitAmount(ing.amount);
                     return {
                         name: ing.name,
                         amount: Number(value) || 1,
-                        unit: unit || ""
+                        unit: unit || "",
                     };
                 });
-
                 await consumeItems(items);
                 localStorage.setItem("fridgeDirty", String(Date.now()));
                 window.dispatchEvent(new Event("fridge-dirty"));
@@ -171,82 +241,26 @@ export default function RecipeDetailPage() {
             } else if (targetIndex != null) {
                 const ing = ingredients[targetIndex];
                 const { exists, total } = await hasIngredientInfo(ing.name);
-
-                // 수량이 0일 경우 "냉장고에 없습니다." 메시지 표시
                 if (!exists) {
                     alert(`냉장고에 '${ing.name}'이(가) 없습니다.`);
                     return;
                 }
-
                 const reqAmount = Number(amountFromModal) || 1;
                 if (reqAmount > total) {
                     alert(`'${ing.name}'의 수량이 부족합니다. (보유: ${total})`);
                     return;
                 }
                 const reqUnit = unitFromModal || "";
-
-                // 차감 요청
                 await consumeItems([{ name: ing.name, amount: reqAmount, unit: reqUnit }]);
-
                 alert("재고 차감 완료!");
             }
         } catch (e) {
-               console.error(e);
-               const msg = String(e?.message || "");
-               if (/(없습|해당 재료가 없습니다)/.test(msg)) {
-                     alert(`냉장고에 '${ingredients[targetIndex]?.name}'이(가) 없습니다.`);
-                   } else if (/수량.*부족/.test(msg)) {
-                     alert(`'${ingredients[targetIndex]?.name}'의 수량이 부족합니다.`);
-                   } else {
-                     alert("재고 차감 실패");
-                   }
-             } finally {
+            console.error(e);
+            alert("재고 차감 실패");
+        } finally {
             setIsModalOpen(false);
         }
     };
-
-
-
-
-
-    // -------------------------------------------------------------
-
-    useEffect(() => {
-        if (!recipeId) return;
-        const ac = new AbortController();
-
-        (async () => {
-            try {
-                const [recipeRes, recRes] = await Promise.all([
-                    fetch(`http://localhost:8080/api/recipes/${recipeId}`, { signal: ac.signal }),
-                    fetch(`http://localhost:8080/api/recipes/${recipeId}/recommendations?limit=3`, { signal: ac.signal }),
-                ]);
-
-                if (!recipeRes.ok) throw new Error("recipe fetch failed");
-                const data = await recipeRes.json();
-                setRecipe(data);
-                setViews(Number(data?.viewCount ?? 0));
-                setLikes(Number(data?.likesCount ?? 0));
-
-                const url = data?.image || data?.imageUrl || data?.thumbnail || null;
-                setImgSrc(url || IMG_PLACEHOLDER);
-
-                setIngredients((data.ingredients || []).map((i) => ({
-                    name: i?.name ?? "",
-                    amount: i?.amount ?? "", // "30g", "5개" 등 그대로 표시
-                })));
-
-                setSeasonings([]);
-
-                const recData = recRes.ok ? await recRes.json() : [];
-                setRecommended(Array.isArray(recData) ? recData : []);
-            } catch (e) {
-                if (e.name !== "AbortError") console.error(e);
-            }
-        })();
-
-        return () => ac.abort();
-    }, [recipeId]);
 
     const steps = useMemo(() => {
         if (!recipe) return [];
@@ -271,72 +285,58 @@ export default function RecipeDetailPage() {
     const handleRemoveClick = (index) => {
         setTargetIndex(index);
         setIsAllDelete(false);
-
         const ing = ingredients[index];
         const { value, unit } = splitAmount(ing?.amount ?? "");
         setPendingDefault({
             amount: Number.isFinite(value) && value > 0 ? value : 1,
             unit: unit || "개",
         });
-
         setIsModalOpen(true);
     };
 
     // 공개 레시피 → 나만의 레시피로 복사
-     const addToMyRecipes = async () => {
-           if (!recipe) return;
-           try {
-                  // 대표 이미지
-                     const imageUrl =
-                       recipe.imageUrl || recipe.image || recipe.thumbnail || imgSrc || "";
+    const addToMyRecipes = async () => {
+        if (!recipe) return;
+        try {
+            const imageUrl = recipe.imageUrl || recipe.image || recipe.thumbnail || imgSrc || "";
+            const ingPayload = (ingredients || []).map((ing, i) => {
+                const { value, unit } = splitAmount(ing?.amount || "");
+                return {
+                    name: ing?.name || "",
+                    quantity: Number.isFinite(value) ? value : 1,
+                    unit: unit || "",
+                    sortOrder: i + 1,
+                };
+            });
+            const stepPayload = (steps || []).map((s, i) => ({
+                content: s,
+                sortOrder: i + 1,
+            }));
+            const payload = {
+                title: recipe.title || "(제목 없음)",
+                imageUrl,
+                ingredients: ingPayload,
+                steps: stepPayload,
+            };
+            const res = await createMyRecipe(payload);
+            const newId = res?.id || res?.recipeId || res?.data?.id;
+            if (newId) {
+                alert("나만의 레시피에 추가되었습니다. 수정 화면으로 이동합니다.");
+                navigate(`/recipe/my/${newId}/edit`);
+            } else {
+                alert("추가는 완료했지만 새 레시피 ID를 받지 못했어요. 내 레시피 목록으로 이동합니다.");
+                navigate("/recipe/my");
+            }
+        } catch (e) {
+            console.error(e);
+            alert("나만의 레시피 추가에 실패했어요. 로그인 상태를 확인해주세요.");
+        }
+    };
 
-                    // 재료: "2컵" → {quantity:2, unit:"컵"}
-                         const ingPayload = (ingredients || []).map((ing, i) => {
-                       const { value, unit } = splitAmount(ing?.amount || "");
-                       return {
-                           name: ing?.name || "",
-                           quantity: Number.isFinite(value) ? value : 1,
-                           unit: unit || "",
-                           sortOrder: i + 1,
-                       };
-                     });
-
-                     // 단계
-                         const stepPayload = (steps || []).map((s, i) => ({
-                                 content: s,
-                                 sortOrder: i + 1,
-                         }));
-
-                     const payload = {
-                       title: recipe.title || "(제목 없음)",
-                       imageUrl,
-                       ingredients: ingPayload,
-                       steps: stepPayload,
-                     };
-
-                     const res = await createMyRecipe(payload); // API는 {id, ...} 반환한다고 가정
-                 const newId = res?.id || res?.recipeId || res?.data?.id;
-                 if (newId) {
-                       alert("나만의 레시피에 추가되었습니다. 수정 화면으로 이동합니다.");
-                       navigate(`/recipe/my/${newId}/edit`);
-                     } else {
-                      alert("추가는 완료했지만 새 레시피 ID를 받지 못했어요. 내 레시피 목록으로 이동합니다.");
-                       navigate("/recipe/my");
-                 }
-                } catch (e) {
-                 console.error(e);
-                 alert("나만의 레시피 추가에 실패했어요. 로그인 상태를 확인해주세요.");
-               }
-     };
-
-
-
-    if (!recipe) return <div>로딩 중...</div>;
-
-
-
-
-
+    if (!recipe) {
+        // 첫 진입에 캐시가 없을 때만 잠깐 보임
+        return <div>로딩 중...</div>;
+    }
 
     return (
         <div className="recipe-detail-container">
@@ -347,16 +347,17 @@ export default function RecipeDetailPage() {
 
                 <div className="recipe-detail-right-panel">
                     <div className="detail-head">
-                                <h2 className="recipe-detail-title">{recipe.title}</h2>
-                                <div className="detail-head-actions">
-                                  <button className="btn-outline" onClick={() => navigate("/recipe")}>
-                                    목록으로
-                                  </button>
-                                  <button className="btn-addmine" onClick={addToMyRecipes}>
-                                    나만의 레시피 추가
-                                  </button>
-                                </div>
-                              </div>
+                        <h2 className="recipe-detail-title">{recipe.title}</h2>
+                        <div className="detail-head-actions">
+                            <button className="btn-outline" onClick={() => navigate("/recipe")}>
+                                목록으로
+                            </button>
+                            <button className="btn-addmine" onClick={addToMyRecipes}>
+                                나만의 레시피 추가
+                            </button>
+                        </div>
+                    </div>
+
                     <div className="recipe-detail-stats">
                         <button
                             className={`like-btn ${liked ? "liked" : ""}`}
@@ -371,7 +372,6 @@ export default function RecipeDetailPage() {
                         <span className="view-count">조회 {views}</span>
                     </div>
 
-
                     <div className="recipe-detail-top">
                         <img
                             src={imgSrc}
@@ -379,49 +379,38 @@ export default function RecipeDetailPage() {
                             className="recipe-detail-image"
                             onError={() => setImgSrc(IMG_PLACEHOLDER)}
                             loading="lazy"
+                            decoding="async"
                         />
-
                         <div className="recipe-detail-table-box">
                             <div className="recipe-detail-grid-title">재료</div>
-
                             <div className="recipe-detail-ingredients-grid">
                                 {ingredients.length === 0 ? (
                                     <div className="recipe-detail-empty">등록된 재료가 없어요</div>
                                 ) : (
                                     ingredients.map((ing, i) => (
-                                        <div className="recipe-detail-ingredient-card" key={i}>
+                                        <div className="recipe-detail-ingredient-card" key={`${ing.name}-${i}`}>
                       <span className="recipe-detail-ingredient-name">
                         <span className="ingredient-name">{ing.name}</span>
                         <span className="ingredient-amount">{ing.amount}</span>
                       </span>
-                                            <button
-                                                className="recipe-detail-remove-btn"
-                                                onClick={() => handleRemoveClick(i)}
-                                            >
+                                            <button className="recipe-detail-remove-btn" onClick={() => handleRemoveClick(i)}>
                                                 재료 삭제
                                             </button>
                                         </div>
                                     ))
                                 )}
                             </div>
-
-
                         </div>
                     </div>
 
                     <div className="recipe-detail-description">
                         <h4>레시피</h4>
                         <ol>
-                            {steps.map((step, i) =>
-                                !showAll && i >= 3 ? null : <li key={i}>{step}</li>
-                            )}
+                            {steps.map((step, i) => (!showAll && i >= 3 ? null : <li key={i}>{step}</li>))}
                         </ol>
 
                         {steps.length > 3 && (
-                            <button
-                                className="recipe-detail-show-more-btn"
-                                onClick={() => setShowAll(!showAll)}
-                            >
+                            <button className="recipe-detail-show-more-btn" onClick={() => setShowAll(!showAll)}>
                                 {showAll ? "접기▲" : "더보기▼"}
                             </button>
                         )}
@@ -432,10 +421,20 @@ export default function RecipeDetailPage() {
                         <div className="recommend-list">
                             {recommended.map((r) => (
                                 <div key={r.id} className="recommend-card" onClick={() => navigate(`/recipe/${r.id}`)}>
-                                    <img src={r.imageUrl || IMG_PLACEHOLDER} alt={r.title} loading="lazy" />
+                                    <img
+                                        src={r.imageUrl || r.image || r.thumbnail || IMG_PLACEHOLDER}
+                                        alt={r.title}
+                                        loading="lazy"
+                                        decoding="async"
+                                        onError={(e) => {
+                                            e.currentTarget.onerror = null;
+                                            e.currentTarget.src = IMG_PLACEHOLDER;
+                                        }}
+                                    />
                                     <p>{r.title}</p>
                                 </div>
                             ))}
+                            {!recommended.length && <div className="recipe-detail-empty">추천 레시피가 아직 없어요</div>}
                         </div>
                         <button className="recipe-detail-back-btn" onClick={() => navigate("/recipe")}>
                             목록으로
@@ -447,13 +446,11 @@ export default function RecipeDetailPage() {
             {isModalOpen && (
                 <ConfirmModal
                     message={
-                        isAllDelete
-                            ? "모든 재료를 차감하시겠습니까?"
-                            : `'${ingredients[targetIndex]?.name}'을(를) 얼마만큼 사용할까요?`
+                        isAllDelete ? "모든 재료를 차감하시겠습니까?" : `'${ingredients[targetIndex]?.name}'을(를) 얼마만큼 사용할까요?`
                     }
                     defaultAmount={pendingDefault.amount}
                     defaultUnit={pendingDefault.unit}
-                    onConfirm={handleConfirmDelete}          // (amount, unit) 전달받음
+                    onConfirm={handleConfirmDelete}
                     onCancel={() => setIsModalOpen(false)}
                 />
             )}

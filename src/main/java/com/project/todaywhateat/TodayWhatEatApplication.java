@@ -2,8 +2,9 @@ package com.project.todaywhateat;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.context.annotation.ComponentScan;
-
+@EnableCaching
 @SpringBootApplication
 @ComponentScan(basePackages = {"com.project.todaywhateat", "com.project.todaywhateat.config"})
 public class TodayWhatEatApplication {

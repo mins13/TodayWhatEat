@@ -1,52 +1,80 @@
-// src/pages/Recipe/MyRecipePage.jsx
-import React, { useEffect, useMemo, useState } from "react";
+import React, {
+    useEffect,
+    useMemo,
+    useState,
+    useDeferredValue,
+    useTransition,
+} from "react";
 import { useNavigate } from "react-router-dom";
 import RecipeSidebar from "../../components/Recipe/RecipeSidebar";
-import { fetchMyRecipes, deleteMyRecipe } from "../../api/myRecipeApi"; // ✅ 추가
+import { fetchMyRecipes, deleteMyRecipe } from "../../api/myRecipeApi";
 import "./MyRecipePage.css";
 import searchIcon from "../../assets/Icon.jpg";
 import useRequireAuth from "../../hooks/useRequireAuth";
 
-/** Wrapper: 여기서만 인증을 확인하고, 통과되면 Inner를 렌더 */
+/** Wrapper: 인증 확인 후 내부 컴포넌트 렌더 */
 export default function MyRecipePage() {
     const ready = useRequireAuth({ alert: true });
     if (!ready) return null;
     return <MyRecipePageInner />;
 }
 
-/** 실제 페이지 로직은 여기서 — 훅을 마음껏 사용해도 OK */
 function MyRecipePageInner() {
     const navigate = useNavigate();
 
     // 서버 데이터 & 페이지네이션
-    const [data, setData] = useState(null); // Page DTO (content, totalPages...)
-    const [currentPage, setCurrentPage] = useState(1); // 1-based UI 페이지
+    const [data, setData] = useState(null); // Page DTO (content, totalPages ...)
+    const [currentPage, setCurrentPage] = useState(1); // 1-based
     const pageSize = 10;
 
     // 검색 상태
-    const [searchInput, setSearchInput] = useState(""); // 입력창
-    const [searchKeyword, setSearchKeyword] = useState(""); // 실제 필터 키워드
+    const [searchInput, setSearchInput] = useState("");
+    const [searchKeyword, setSearchKeyword] = useState("");
+    const deferredKeyword = useDeferredValue(searchKeyword);
+    const [isPending, startTransition] = useTransition();
 
     const [loading, setLoading] = useState(false);
 
-    // 서버에서 내 초안 목록 가져오기 (정렬/상태 없음)
+    const userId = localStorage.getItem("userId") || "guest";
+    const CACHE_PREFIX = `myrecipes:${userId}:v1`;
+    const pageKey = (p) => `${CACHE_PREFIX}:p${p}`;
+
+    // ① 프리하이드레이션: 페이지 바뀔 때마다 캐시에서 즉시 반영
     useEffect(() => {
+        const cached = sessionStorage.getItem(pageKey(currentPage));
+        if (cached) {
+            try {
+                setData(JSON.parse(cached));
+            } catch {}
+        }
+    }, [currentPage]);
+
+    // ② 백그라운드 재검증: 서버 최신 데이터로 갱신 + 캐시 저장
+    useEffect(() => {
+        let aborted = false;
         const load = async () => {
             setLoading(true);
             try {
-                const res = await fetchMyRecipes(currentPage - 1, pageSize); // 서버는 0-based
+                const res = await fetchMyRecipes(currentPage - 1, pageSize); // 서버 0-based
+                if (aborted) return;
                 setData(res);
+                sessionStorage.setItem(pageKey(currentPage), JSON.stringify(res));
             } finally {
-                setLoading(false);
+                if (!aborted) setLoading(false);
             }
         };
         load();
+        return () => {
+            aborted = true;
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [currentPage]);
 
-    // 새로고침 유틸
+    // 새로고침 유틸(서버 → 상태/캐시 갱신)
     const refresh = async (page = currentPage) => {
         const res = await fetchMyRecipes(page - 1, pageSize);
         setData(res);
+        sessionStorage.setItem(pageKey(page), JSON.stringify(res));
     };
 
     // 삭제
@@ -54,17 +82,21 @@ function MyRecipePageInner() {
         if (!window.confirm("이 레시피를 삭제할까요? 되돌릴 수 없어요.")) return;
         try {
             await deleteMyRecipe(id);
-            await refresh();
+            // 관련 캐시 전부 무효화
+            Object.keys(sessionStorage).forEach((k) => {
+                if (k.startsWith(CACHE_PREFIX)) sessionStorage.removeItem(k);
+            });
+            await refresh(); // 현재 페이지 재조회
             alert("삭제되었습니다.");
         } catch (e) {
             alert(e?.message || "삭제에 실패했습니다.");
         }
     };
 
-    // 로컬 검색(제목/재료명)
+    // 로컬 검색(제목/재료명) – 메모이제 + 입력 지연
     const items = useMemo(() => {
         const list = data?.content ?? [];
-        const kw = searchKeyword.trim().toLowerCase();
+        const kw = (deferredKeyword || "").trim().toLowerCase();
         if (!kw) return list;
         return list.filter((d) => {
             const inTitle = (d.title || "").toLowerCase().includes(kw);
@@ -73,15 +105,15 @@ function MyRecipePageInner() {
             );
             return inTitle || inIngs;
         });
-    }, [data, searchKeyword]);
+    }, [data, deferredKeyword]);
 
     // 검색 실행
     const runSearch = () => {
-        setSearchKeyword(searchInput);
+        startTransition(() => setSearchKeyword(searchInput));
         setCurrentPage(1);
     };
 
-    // 페이지 이동 유틸
+    // 페이지 유틸
     const totalPages = data?.totalPages ?? 1;
     const goFirst = () => setCurrentPage(1);
     const goPrev = () => setCurrentPage((p) => Math.max(1, p - 1));
@@ -97,10 +129,10 @@ function MyRecipePageInner() {
                 </div>
 
                 {/* 오른쪽 본문 */}
-                <div className="right-panel myrecipes">
+                <div className="right-panel myrecipes" aria-busy={isPending || loading}>
                     <h2 className="main-recipe-title">나만의 레시피</h2>
 
-                    {/* 검색 + 작성 버튼 (정렬 없음) */}
+                    {/* 검색 + 작성 버튼 */}
                     <div className="main-recipe-searchbar">
                         <div className="main-recipe-searchbox">
                             <input
@@ -111,8 +143,9 @@ function MyRecipePageInner() {
                                 onKeyDown={(e) => {
                                     if (e.key === "Enter") runSearch();
                                 }}
+                                aria-label="내 레시피 검색"
                             />
-                            <button className="search-button" onClick={runSearch}>
+                            <button className="search-button" onClick={runSearch} title="검색">
                                 <img src={searchIcon} alt="검색" />
                             </button>
                         </div>
@@ -126,7 +159,7 @@ function MyRecipePageInner() {
                     </div>
 
                     {/* 목록 */}
-                    {loading && <div className="empty">로딩...</div>}
+                    {loading && !data && <div className="empty">로딩...</div>}
                     {!loading && items.length === 0 && (
                         <div className="empty">레시피가 없습니다.</div>
                     )}
@@ -137,6 +170,11 @@ function MyRecipePageInner() {
                                 key={d.id}
                                 className="myrecipes-card"
                                 onClick={() => navigate(`/recipe/my/${d.id}`)}
+                                role="button"
+                                tabIndex={0}
+                                onKeyDown={(e) => {
+                                    if (e.key === "Enter") navigate(`/recipe/my/${d.id}`);
+                                }}
                             >
                                 <div className="title">{d.title || "(제목 없음)"}</div>
                                 <div className="subtitle">
@@ -148,7 +186,7 @@ function MyRecipePageInner() {
                                     {(d.ingredients || []).length > 6 ? " …" : ""}
                                 </div>
 
-                                {/* ✅ 카드 삭제 버튼 (카드 클릭 방지 위해 stopPropagation) */}
+                                {/* 카드 삭제 버튼 (카드 클릭 방지) */}
                                 <button
                                     className="card-del"
                                     title="삭제"

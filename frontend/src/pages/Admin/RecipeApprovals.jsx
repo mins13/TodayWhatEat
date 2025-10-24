@@ -1,28 +1,70 @@
-import { useEffect, useState } from "react";
+// src/pages/Admin/RecipeApprovals.jsx
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { fetchPendingDrafts, approveDraft, rejectDraft } from "../../api/adminRecipeDraftApi";
 import "./admin.css";
 
+/* 간단 SWR: 세션스토리지 캐시 + 백그라운드 갱신 */
+async function swr(key, loader, { ttl = 45_000 } = {}) {
+    const now = Date.now();
+    const raw = sessionStorage.getItem(key);
+    let cached = null;
+    if (raw) {
+        try {
+            const { ts, data } = JSON.parse(raw);
+            if (now - ts < ttl) cached = data;
+        } catch {}
+    }
+    // 백그라운드 갱신: 취소 컨트롤 없이 그대로 진행
+    const promise = (async () => {
+        const fresh = await loader();
+        sessionStorage.setItem(key, JSON.stringify({ ts: Date.now(), data: fresh }));
+        return fresh;
+    })();
+    return { cached, promise };
+}
+
 export default function RecipeApprovals() {
     const [data, setData] = useState(null);
-    const [reasons, setReasons] = useState({}); // { [id]: reason }
+    const [reasons, setReasons] = useState({});
     const [error, setError] = useState("");
     const navigate = useNavigate();
+    const mounted = useRef(true);
+    const key = "adm:approvals:pending";
 
-    const load = async () => {
+    const load = async (force = false) => {
         try {
-            const res = await fetchPendingDrafts();
+            if (force) sessionStorage.removeItem(key);
+
+            const { cached, promise } = await swr(
+                key,
+                () => fetchPendingDrafts({ page: 0, size: 20 }), // ✅ 객체 인자 유지
+                { ttl: 20_000 }
+            );
+
+            if (cached && !force) {
+                setData(cached);
+                setError("");
+            }
+
+            const res = await promise;
+            if (!mounted.current) return;
             setData(res);
             setError("");
         } catch (e) {
+            if (!mounted.current) return;
             setError(e?.message || "목록을 불러오지 못했습니다.");
-            setData({ content: [] });
+            setData((prev) => prev ?? { content: [] });
         }
     };
 
-    useEffect(() => { load(); }, []);
+    useEffect(() => {
+        mounted.current = true;
+        load();
+        return () => { mounted.current = false; };
+    }, []);
 
-    const setReason = (id, v) => setReasons(prev => ({ ...prev, [id]: v }));
+    const setReason = (id, v) => setReasons((prev) => ({ ...prev, [id]: v }));
 
     if (!data) return <div className="loading">로딩...</div>;
 
@@ -30,7 +72,6 @@ export default function RecipeApprovals() {
         <div className="admin-page">
             <h2 className="page-title">레시피 승인 대기</h2>
 
-            {/* 검색/툴바 (필요 없으면 지워도 됨) */}
             <div className="toolbar">
                 <div className="search">
                     <input className="search-input" placeholder="검색 (제목)" disabled />
@@ -51,10 +92,9 @@ export default function RecipeApprovals() {
                     </tr>
                     </thead>
                     <tbody>
-                    {(data.content || []).map(d => (
+                    {(data.content || []).map((d) => (
                         <tr key={d.id}>
                             <td>{d.id}</td>
-
                             <td className="ellipsis">
                                 <button
                                     className="linklike"
@@ -64,27 +104,21 @@ export default function RecipeApprovals() {
                                     {d.title || "(제목 없음)"}
                                 </button>
                             </td>
-
                             <td>
-                  <span className={`badge ${
-                      (d.status || "PENDING").toString().toLowerCase()
-                  }`}>
+                  <span className={`badge ${(d.status || "PENDING").toString().toLowerCase()}`}>
                     {d.status || "PENDING"}
                   </span>
                             </td>
-
                             <td className="muted">
-                                {/* ISO라면 slice로 간단 표시 */}
                                 {d.createdAt ? String(d.createdAt).replace("T", " ").slice(0, 16) : "-"}
                             </td>
-
                             <td>
                                 <div className="row-actions" style={{ display: "flex", alignItems: "center" }}>
                                     <button
                                         className="primary"
                                         onClick={async () => {
                                             await approveDraft(d.id);
-                                            await load();
+                                            await load(true); // ✅ 캐시 무효화 후 재로드
                                             alert("승인 완료");
                                         }}
                                     >
@@ -95,7 +129,7 @@ export default function RecipeApprovals() {
                                         className="reason-input"
                                         placeholder="반려 사유"
                                         value={reasons[d.id] || ""}
-                                        onChange={e => setReason(d.id, e.target.value)}
+                                        onChange={(e) => setReason(d.id, e.target.value)}
                                         style={{ flex: 1, minWidth: 160 }}
                                     />
 
@@ -104,7 +138,7 @@ export default function RecipeApprovals() {
                                         onClick={async () => {
                                             await rejectDraft(d.id, reasons[d.id] || "형식 미흡");
                                             setReason(d.id, "");
-                                            await load();
+                                            await load(true); // ✅ 캐시 무효화 후 재로드
                                             alert("반려 완료");
                                         }}
                                     >
@@ -114,7 +148,6 @@ export default function RecipeApprovals() {
                             </td>
                         </tr>
                     ))}
-
                     {(data.content || []).length === 0 && (
                         <tr>
                             <td colSpan={5} className="empty">승인 대기 항목이 없습니다.</td>
@@ -124,35 +157,13 @@ export default function RecipeApprovals() {
                 </table>
             </div>
 
-
             <div className="pager">
-                <button
-                    className="btn ghost pager-nav"
-                    disabled   // 페이지네이션 붙이면 조건으로 바꿔 쓰면 됨: page <= 1
-                    aria-label="이전 페이지"
-                    // onClick={() => setPage((p) => Math.max(1, p - 1))}
-                >
-                    ‹
-                </button>
-
-                <span className="page-num">1</span> {/* 실제 페이지 번호 바인딩으로 교체 가능 */}
-
-                <button
-                    className="btn ghost pager-nav"
-                    disabled   // 페이지네이션 붙이면 조건으로 바꿔 쓰면 됨: page >= totalPages
-                    aria-label="다음 페이지"
-                    // onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                >
-                    ›
-                </button>
+                <button className="btn ghost pager-nav" disabled aria-label="이전 페이지">‹</button>
+                <span className="page-num">1</span>
+                <button className="btn ghost pager-nav" disabled aria-label="다음 페이지">›</button>
             </div>
 
-
-            {error && (
-                <div style={{ marginTop: 10 }} className="badge-red">
-                    {error}
-                </div>
-            )}
+            {error && <div style={{ marginTop: 10 }} className="badge-red">{error}</div>}
         </div>
     );
 }

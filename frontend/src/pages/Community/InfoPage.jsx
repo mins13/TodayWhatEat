@@ -1,5 +1,5 @@
 // src/pages/community/InfoPage.jsx
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "../../components/Community/CommunityLayout";
 import searchIcon from "../../assets/Icon.jpg";
@@ -18,14 +18,37 @@ export default function InfoPage() {
     // 데이터
     const [posts, setPosts] = useState([]);
     const [total, setTotal] = useState(0);
+    const [loading, setLoading] = useState(false);
 
     // 페이지네이션 설정
     const postsPerPage = 5;
     const pageLimit = 5;
 
-    // ✅ API 연동
+    // 🔑 캐시 키(질의/정렬/페이지 포함)
+    const CACHE_VER = "v1";
+    const cacheKey = useMemo(
+        () =>
+            `info:${CACHE_VER}:q=${encodeURIComponent(query)}:s=${sort}:p=${currentPage}:size=${postsPerPage}`,
+        [query, sort, currentPage]
+    );
+
+    // ① 프리하이드레이션: 캐시가 있으면 즉시 반영
     useEffect(() => {
+        const cached = sessionStorage.getItem(cacheKey);
+        if (cached) {
+            try {
+                const parsed = JSON.parse(cached);
+                setPosts(Array.isArray(parsed.items) ? parsed.items : []);
+                setTotal(Number.isFinite(parsed.total) ? parsed.total : 0);
+            } catch {}
+        }
+    }, [cacheKey]);
+
+    // ② 백그라운드 재검증: 서버 최신으로 갱신 + 캐시에 저장
+    useEffect(() => {
+        let aborted = false;
         (async () => {
+            setLoading(true);
             try {
                 const { items, total } = await fetchPosts("info", {
                     query,
@@ -33,17 +56,25 @@ export default function InfoPage() {
                     page: currentPage,
                     size: postsPerPage,
                 });
-                setPosts(items);
-                setTotal(total);
+                if (aborted) return;
+                setPosts(items || []);
+                setTotal(total || 0);
+                sessionStorage.setItem(cacheKey, JSON.stringify({ items, total, at: Date.now() }));
             } catch (e) {
                 console.error(e);
-                alert("정보게시판을 불러오지 못했습니다.");
+                const hadCache = !!sessionStorage.getItem(cacheKey);
+                if (!hadCache) alert("정보게시판을 불러오지 못했습니다.");
+            } finally {
+                if (!aborted) setLoading(false);
             }
         })();
-    }, [query, sort, currentPage]);
+        return () => {
+            aborted = true;
+        };
+    }, [cacheKey]);
 
     // 페이지네이션 계산
-    const totalPages = Math.max(1, Math.ceil(total / postsPerPage));
+    const totalPages = Math.max(1, Math.ceil((total || 0) / postsPerPage));
     const currentGroup = Math.floor((currentPage - 1) / pageLimit);
     const startPage = currentGroup * pageLimit + 1;
     const endPage = Math.min(startPage + pageLimit - 1, totalPages);
@@ -51,7 +82,7 @@ export default function InfoPage() {
     for (let i = startPage; i <= endPage; i++) pageNumbers.push(i);
 
     const handleSearch = () => {
-        setQuery(searchInput);
+        setQuery(searchInput.trim());
         setCurrentPage(1);
     };
 
@@ -62,7 +93,7 @@ export default function InfoPage() {
                     <Sidebar />
                 </div>
 
-                <div className="right-panel">
+                <div className="right-panel" aria-busy={loading}>
                     <button
                         className="info-write-btn"
                         onClick={() => navigate("/community/write")}
@@ -88,10 +119,23 @@ export default function InfoPage() {
                         <button className="search-button" onClick={handleSearch}>
                             <img src={searchIcon} alt="검색" />
                         </button>
+
+                        {/* 정렬 드롭다운 필요하면 주석 해제해서 사용 */}
+                        {/*
+            <select
+              value={sort}
+              onChange={(e) => { setSort(e.target.value); setCurrentPage(1); }}
+              style={{ marginLeft: 8 }}
+            >
+              <option value="latest">최신순</option>
+              <option value="views">조회순</option>
+              <option value="likes">좋아요순</option>
+            </select>
+            */}
                     </div>
 
                     <div className="info-list">
-                        {posts.length === 0 ? (
+                        {(posts || []).length === 0 ? (
                             <div className="info-item" style={{ justifyContent: "center" }}>
                                 검색 결과가 없습니다.
                             </div>
@@ -107,8 +151,7 @@ export default function InfoPage() {
                                         <div className="info-content">{info.content}</div>
                                     </div>
                                     <div className="info-right">
-                                        작성자: {info.author}
-
+                                        작성자: {info.author ?? info.authorName ?? "익명"}
                                     </div>
                                 </div>
                             ))
@@ -133,8 +176,8 @@ export default function InfoPage() {
                                     className={page === currentPage ? "active-page" : ""}
                                     onClick={() => setCurrentPage(page)}
                                 >
-                                    {page}
-                                </span>
+                  {page}
+                </span>
                             ))}
 
                             <button

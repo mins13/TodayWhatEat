@@ -1,5 +1,5 @@
 // src/pages/community/NoticePage.jsx
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "../../components/Community/CommunityLayout";
 import searchIcon from "../../assets/Icon.jpg";
@@ -16,16 +16,40 @@ export default function NoticePage() {
     const [currentPage, setCurrentPage] = useState(1);
 
     // 데이터
-    const [posts, setPosts] = useState([]);
+    const [posts, setPosts] = useState([]); // items
     const [total, setTotal] = useState(0);
+    const [loading, setLoading] = useState(false);
 
     // 페이지네이션 설정
     const postsPerPage = 5;
     const pageLimit = 5;
 
-    // ✅ API 연동
+    // 🔑 캐시 키 (질의/정렬/페이지 조합)
+    const CACHE_VER = "v1";
+    const cacheKey = useMemo(
+        () =>
+            `notice:${CACHE_VER}:q=${encodeURIComponent(query)}:s=${sort}:p=${currentPage}:size=${postsPerPage}`,
+        [query, sort, currentPage]
+    );
+
+    // ① 프리하이드레이션: 캐시가 있으면 즉시 반영(블로킹 없이 바로 그림)
     useEffect(() => {
+        const cached = sessionStorage.getItem(cacheKey);
+        if (cached) {
+            try {
+                const parsed = JSON.parse(cached);
+                setPosts(Array.isArray(parsed.items) ? parsed.items : []);
+                setTotal(Number.isFinite(parsed.total) ? parsed.total : 0);
+            } catch {}
+        }
+        // 캐시가 없으면 기존 상태 유지 → 아래 재검증에서 채워짐
+    }, [cacheKey]);
+
+    // ② 백그라운드 재검증: 서버 최신으로 갱신 + 캐시에 저장
+    useEffect(() => {
+        let aborted = false;
         (async () => {
+            setLoading(true);
             try {
                 const { items, total } = await fetchPosts("notice", {
                     query,
@@ -33,17 +57,26 @@ export default function NoticePage() {
                     page: currentPage,
                     size: postsPerPage,
                 });
-                setPosts(items);
-                setTotal(total);
+                if (aborted) return;
+                setPosts(items || []);
+                setTotal(total || 0);
+                sessionStorage.setItem(cacheKey, JSON.stringify({ items, total, at: Date.now() }));
             } catch (e) {
                 console.error(e);
-                alert("공지사항을 불러오지 못했습니다.");
+                // 캐시가 전혀 없고 네트워크도 실패했을 때만 안내
+                const hadCache = !!sessionStorage.getItem(cacheKey);
+                if (!hadCache) alert("공지사항을 불러오지 못했습니다.");
+            } finally {
+                if (!aborted) setLoading(false);
             }
         })();
-    }, [query, sort, currentPage]);
+        return () => {
+            aborted = true;
+        };
+    }, [cacheKey]); // query/sort/page가 바뀌면 자동 재검증
 
     // 페이지네이션 계산
-    const totalPages = Math.max(1, Math.ceil(total / postsPerPage));
+    const totalPages = Math.max(1, Math.ceil((total || 0) / postsPerPage));
     const currentGroup = Math.floor((currentPage - 1) / pageLimit);
     const startPage = currentGroup * pageLimit + 1;
     const endPage = Math.min(startPage + pageLimit - 1, totalPages);
@@ -51,7 +84,7 @@ export default function NoticePage() {
     for (let i = startPage; i <= endPage; i++) pageNumbers.push(i);
 
     const handleSearch = () => {
-        setQuery(searchInput);
+        setQuery(searchInput.trim());
         setCurrentPage(1);
     };
 
@@ -62,7 +95,7 @@ export default function NoticePage() {
                     <Sidebar />
                 </div>
 
-                <div className="right-panel">
+                <div className="right-panel" aria-busy={loading}>
                     <button
                         className="notice-write-btn"
                         onClick={() => navigate("/community/write")}
@@ -88,10 +121,19 @@ export default function NoticePage() {
                         <button className="search-button" onClick={handleSearch}>
                             <img src={searchIcon} alt="검색" />
                         </button>
+
+                        {/* 선택: 정렬 드롭다운(원한다면 UI 추가) */}
+                        {/*
+            <select value={sort} onChange={(e) => { setSort(e.target.value); setCurrentPage(1); }}>
+              <option value="latest">최신순</option>
+              <option value="views">조회순</option>
+              <option value="likes">좋아요순</option>
+            </select>
+            */}
                     </div>
 
                     <div className="notice-list">
-                        {posts.length === 0 ? (
+                        {(posts || []).length === 0 ? (
                             <div className="notice-item" style={{ justifyContent: "center" }}>
                                 검색 결과가 없습니다.
                             </div>
@@ -116,8 +158,8 @@ export default function NoticePage() {
                                                         border: "1px solid #ffd43b",
                                                     }}
                                                 >
-                고정
-              </span>
+                          고정
+                        </span>
                                             )}
                                             {notice.title}
                                         </div>
@@ -149,8 +191,8 @@ export default function NoticePage() {
                                     className={page === currentPage ? "active-page" : ""}
                                     onClick={() => setCurrentPage(page)}
                                 >
-                                    {page}
-                                </span>
+                  {page}
+                </span>
                             ))}
 
                             <button

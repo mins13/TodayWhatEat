@@ -1,5 +1,5 @@
 // src/pages/Admin/AdminRecipes.jsx
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
     fetchAdminRecipes, fetchRecipeDetail,
     createRecipe, updateRecipe, deleteRecipe,
@@ -7,33 +7,71 @@ import {
     fetchTags, saveTags
 } from "../../api/adminRecipeMgmtApi";
 
-export default function AdminRecipes(){
+/* SWR */
+async function swr(key, loader, { ttl = 45_000, signal } = {}) {
+    const now = Date.now();
+    const raw = sessionStorage.getItem(key);
+    let cached = null;
+    if (raw) {
+        try {
+            const { ts, data } = JSON.parse(raw);
+            if (now - ts < ttl) cached = data;
+        } catch {}
+    }
+    const promise = (async () => {
+        const fresh = await loader(signal);
+        sessionStorage.setItem(key, JSON.stringify({ ts: Date.now(), data: fresh }));
+        return fresh;
+    })();
+    return { cached, promise };
+}
+
+export default function AdminRecipes() {
     const [query, setQuery]   = useState("");
     const [page, setPage]     = useState(0);
     const [data, setData]     = useState(null);
 
-    // 추가 모드: { id:null, title:"", image:"", ingredients:[{name,amount}], steps:[""] }
-    // 수정 모드: { id:number, title,image, steps:["", ...] }
     const [editing, setEditing] = useState(null);
-
     const [ingModal, setIngModal] = useState({ open:false, recipeId:null, list:[] });
     const [tagModal, setTagModal] = useState({ open:false, recipeId:null, tags:[], input:"" });
 
-    const load = async (p = page) => {
-        const res = await fetchAdminRecipes({ page: p, size: 10, query });
+    const acRef = useRef(null);
+    const size = 10;
 
-        // 응답 표준화: items/total 로 맞춘다 (둘 다 지원)
-        const items = res?.items ?? res?.content ?? [];
-        const total = res?.total ?? res?.totalElements ?? res?.totalCount ?? 0;
-
-        setData({ items, total });
-        setPage(p);
+    const load = async (p = page, q = query) => {
+        acRef.current?.abort?.();
+        const ac = new AbortController();
+        acRef.current = ac;
+        const key = `adm:recipes:p${p}:q${q}`;
+        try {
+            const { cached, promise } = await swr(
+                key,
+                (signal) => fetchAdminRecipes({ page: p, size, query: q, signal }),
+                { ttl: 30_000, signal: ac.signal }
+            );
+            const pick = (res) => {
+                const items = res?.items ?? res?.content ?? [];
+                const total = res?.total ?? res?.totalElements ?? res?.totalCount ?? 0;
+                return { items, total };
+            };
+            if (cached) {
+                setData(pick(cached));
+                setPage(p);
+            }
+            const fresh = await promise;
+            setData(pick(fresh));
+            setPage(p);
+        } catch (e) {
+            if (e?.name === "AbortError") return;
+            console.error(e);
+            setData({ items: [], total: 0 });
+        }
     };
-    useEffect(()=>{ load(0).catch(console.error); },[]);
 
-    const onSearch = async()=>{ await load(0); };
+    useEffect(()=>{ load(0, query).catch(console.error); },[]);
 
-    // ------- 레시피 추가/수정 열기 -------
+    const onSearch = async()=>{ await load(0, query); };
+
     const openEdit = async (id) => {
         if (!id) {
             setEditing({
@@ -45,7 +83,8 @@ export default function AdminRecipes(){
             });
             return;
         }
-        const d = await fetchRecipeDetail(id);
+        const ac = new AbortController();
+        const d = await fetchRecipeDetail(id, { signal: ac.signal });
         const rawSteps = d.steps ?? [];
         const steps = rawSteps
             .map(s => typeof s === "string" ? s : (s?.description ?? ""))
@@ -60,7 +99,6 @@ export default function AdminRecipes(){
         });
     };
 
-    // ------- 레시피 저장 -------
     const saveEdit = async()=>{
         if(!editing.title?.trim()) return alert("제목은 필수입니다.");
         const title = editing.title.trim();
@@ -82,13 +120,22 @@ export default function AdminRecipes(){
 
             await createRecipe({ title, image, ingredients, steps });
         }
+        // 캐시 무효화
+        Object.keys(sessionStorage)
+            .filter(k=>k.startsWith("adm:recipes"))
+            .forEach(k=>sessionStorage.removeItem(k));
+
         setEditing(null);
-        await load(0);
+        await load(0, query);
     };
 
     const remove = async(id)=>{
         if(!window.confirm("정말 삭제할까요?")) return;
-        await deleteRecipe(id); await load();
+        await deleteRecipe(id);
+        Object.keys(sessionStorage)
+            .filter(k=>k.startsWith("adm:recipes"))
+            .forEach(k=>sessionStorage.removeItem(k));
+        await load(page, query);
     };
 
     // ------- 재료 모달(수정 전용) -------
@@ -110,7 +157,7 @@ export default function AdminRecipes(){
         setTagModal({ open:true, recipeId, tags, input:"" });
     };
     const addTag = ()=>{
-        const v = tagModal.input.trim();
+        const v = (tagModal.input||"").trim();
         if(!v) return;
         if(tagModal.tags.includes(v)) return setTagModal(m=>({...m, input:""}));
         setTagModal(m=>({...m, tags:[...m.tags, v], input:""}));
@@ -132,13 +179,13 @@ export default function AdminRecipes(){
     };
 
     const totalPages = data ? Math.max(1, Math.ceil(data.total / 10)) : 1;
-    const current = page + 1; // 1-based for UI
+    const current = page + 1;
+    const goto = (p) => { if (p<0 || p>=totalPages) return; setPage(p); load(p, query); };
 
-    const goto = (p) => { if (p<0 || p>=totalPages) return; setPage(p); load(p); };
     const pageNums = () => {
         const max = totalPages;
         const cur = current;
-        const window = 5; // 한 번에 보여줄 숫자 개수
+        const window = 5;
         const start = Math.max(1, cur - Math.floor(window/2));
         const end = Math.min(max, start + window - 1);
         const items = [];
@@ -180,7 +227,7 @@ export default function AdminRecipes(){
                     {data.items.map(r => (
                         <tr key={r.id}>
                             <td>{r.id}</td>
-                            <td>{r.image ? <img src={r.image} alt="" style={{width:64,height:42,objectFit:"cover",borderRadius:6}}/> : "-"}</td>
+                            <td>{r.image ? <img src={r.image} alt="" loading="lazy" style={{width:64,height:42,objectFit:"cover",borderRadius:6}}/> : "-"}</td>
                             <td>{r.title}</td>
                             <td>{r.likesCount}</td>
                             <td>{r.viewCount}</td>
@@ -229,7 +276,6 @@ export default function AdminRecipes(){
                     <div className="modal-card">
                         <h3>{editing.id ? "레시피 수정" : "레시피 추가"}</h3>
 
-                        {/* 스크롤 영역 */}
                         <div className="modal-body">
                             <label>제목
                                 <input
@@ -245,7 +291,6 @@ export default function AdminRecipes(){
                                 />
                             </label>
 
-                            {/* ✅ 추가 모드에서만 재료 함께 작성 */}
                             {!editing.id && (
                                 <div>
                                     <div style={{display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:6}}>
@@ -278,7 +323,6 @@ export default function AdminRecipes(){
                                 </div>
                             )}
 
-                            {/* 단계 편집 */}
                             <div>
                                 <div style={{display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:6}}>
                                     <b>레시피(단계)</b>
@@ -306,7 +350,6 @@ export default function AdminRecipes(){
                             </div>
                         </div>
 
-                        {/* 하단 버튼바 */}
                         <div className="actions">
                             <button onClick={()=>setEditing(null)}>취소</button>
                             <button className="primary" onClick={saveEdit}>저장</button>
@@ -315,7 +358,7 @@ export default function AdminRecipes(){
                 </div>
             )}
 
-            {/* 재료 모달 (수정 전용) */}
+            {/* 재료 모달 */}
             {ingModal.open && (
                 <div className="modal">
                     <div className="modal-card" style={{maxWidth:640}}>

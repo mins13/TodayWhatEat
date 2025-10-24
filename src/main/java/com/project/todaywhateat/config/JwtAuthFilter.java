@@ -1,8 +1,8 @@
 // com.project.todaywhateat.config.JwtAuthFilter
 package com.project.todaywhateat.config;
 
-import com.project.todaywhateat.jwt.JwtUtil;
 import com.project.todaywhateat.domain.User;
+import com.project.todaywhateat.jwt.JwtUtil;
 import com.project.todaywhateat.repository.UserRepository;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -23,31 +23,62 @@ import java.util.List;
 public class JwtAuthFilter extends OncePerRequestFilter {
 
     private final JwtUtil jwtUtil;
-    private final UserRepository userRepository; // ★ role 조회용
+    private final UserRepository userRepository;
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request,
-                                    HttpServletResponse response,
-                                    FilterChain chain)
-            throws ServletException, IOException {
+    protected void doFilterInternal(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            FilterChain chain) throws ServletException, IOException {
 
-        String token = jwtUtil.resolveToken(request);
+        // 1) 프리플라이트는 절대 막지 않음 (CORS 헤더 붙도록 통과)
+        if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
+            chain.doFilter(request, response);
+            return;
+        }
 
-        if (token != null && jwtUtil.validateToken(token)) {
+        // 2) 토큰 없으면 그대로 통과 (공개 GET, 프리플라이트 등)
+        String token = null;
+        try {
+            token = jwtUtil.resolveToken(request);
+        } catch (Exception ignore) {
+            // 헤더 파싱 중 예외가 떠도 막지 않고 통과
+            chain.doFilter(request, response);
+            return;
+        }
+
+        if (token == null || token.isBlank()) {
+            chain.doFilter(request, response);
+            return;
+        }
+
+        // 3) 토큰 검증 실패해도 여기서 401 쓰지 말고 통과 (보호 리소스는 뒤에서 거절됨)
+        try {
+            if (!jwtUtil.validateToken(token)) {
+                chain.doFilter(request, response);
+                return;
+            }
+        } catch (Exception e) {
+            SecurityContextHolder.clearContext();
+            chain.doFilter(request, response);
+            return;
+        }
+
+        // 4) 인증 성공 시 컨텍스트에만 심어줌
+        try {
             String username = jwtUtil.getUsername(token);
-
-            // DB에서 최신 role 조회 (예: "USER" 또는 "ADMIN")
             String role = userRepository.findByUsername(username)
-                    .map(User::getRole)              // String role 필드 가정
+                    .map(User::getRole)
                     .map(String::toUpperCase)
                     .orElse("USER");
 
-            var authorities = List.of(new SimpleGrantedAuthority("ROLE_" + role));
-
             var auth = new UsernamePasswordAuthenticationToken(
-                    username, null, authorities
+                    username, null, List.of(new SimpleGrantedAuthority("ROLE_" + role))
             );
             SecurityContextHolder.getContext().setAuthentication(auth);
+        } catch (Exception e) {
+            // 사용자 조회 실패 등 – 인증만 비워두고 계속 진행
+            SecurityContextHolder.clearContext();
         }
 
         chain.doFilter(request, response);
