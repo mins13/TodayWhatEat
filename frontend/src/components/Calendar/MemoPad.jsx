@@ -8,8 +8,18 @@ export default function MemoPad() {
     const [status, setStatus] = useState("idle"); // idle | loading | saving | saved | error
     const timer = useRef(null);
 
+    const hasToken = () =>
+            !!(
+                sessionStorage.getItem("accessToken") || localStorage.getItem("accessToken") ||
+                 localStorage.getItem("token")
+               );
+
     // 1) 최초 로드: 서버에서 불러오기
     useEffect(() => {
+        if (!hasToken()) {
+                  setStatus("idle");
+                  return;
+                }
         let mounted = true;
         (async () => {
             try {
@@ -29,6 +39,10 @@ export default function MemoPad() {
 
     // 2) 입력 시 600ms 디바운스로 자동 저장
     useEffect(() => {
+        if (!hasToken()) {
+                 setStatus("idle");
+                 return;
+               }
         if (timer.current) clearTimeout(timer.current);
         setStatus((s) => (s === "loading" ? "loading" : "saving"));
         timer.current = setTimeout(async () => {
@@ -50,6 +64,8 @@ export default function MemoPad() {
             const isSave = (e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s";
             if (!isSave) return;
             e.preventDefault();
+
+            if (!hasToken()) return; // 비로그인 시 저장 안 함
             try {
                 setStatus("saving");
                 await saveUserMemo(memo);
@@ -67,10 +83,14 @@ export default function MemoPad() {
     const clearMemo = async () => {
         try {
             setMemo("");
-            setStatus("saving");
-            await saveUserMemo("");
-            setStatus("saved");
-            setTimeout(() => setStatus("idle"), 800);
+            if (hasToken()) {
+                       setStatus("saving");
+                       await saveUserMemo("");
+                       setStatus("saved");
+                       setTimeout(() => setStatus("idle"), 800);
+                     } else {
+                       setStatus("idle");
+                     }
         } catch {
             setStatus("error");
         }

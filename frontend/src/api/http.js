@@ -6,25 +6,39 @@ const baseURL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8080";
 /** 1) 공개용 클라이언트 (쿠키 X, 토큰 X) */
 export const openHttp = axios.create({
     baseURL,
-    withCredentials: false,   // ❌ 쿠키 안 보냄
+    withCredentials: false,
 });
 
 /** 2) 인증이 필요한 요청용 클라이언트 (쿠키 O, 토큰 O) */
 export const authHttp = axios.create({
     baseURL,
-    withCredentials: true,    // ✅ refreshToken 쿠키 보내려면 true
+    withCredentials: true,
 });
 
 /** 👉 옛 코드 호환용: http = authHttp */
 export const http = authHttp;
 
+/* ========================
+ *  공통 토큰 조회 헬퍼
+ *  (sessionStorage → localStorage 순)
+ * ======================== */
+function resolveToken() {
+    return (
+        sessionStorage.getItem("accessToken") ||
+        localStorage.getItem("accessToken") ||
+        localStorage.getItem("token") ||
+        ""
+    );
+}
+
 /** --- authHttp 에만 인터셉터 달기 --- */
 
 // 요청 인터셉터: accessToken 헤더에 붙이기
 authHttp.interceptors.request.use((config) => {
-    const token = sessionStorage.getItem("accessToken");
-    if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
+    const raw = resolveToken();
+    if (raw) {
+        const token = raw.startsWith("Bearer ") ? raw : `Bearer ${raw}`;
+        config.headers.Authorization = token;
     }
 
     const isFormData = config.data instanceof FormData;
