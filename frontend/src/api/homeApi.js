@@ -1,11 +1,11 @@
 // src/api/homeApi.js
-import { http } from "./http";
+import { openHttp } from "./http";
 
 /* ---------- 공통 유틸 ---------- */
 function toList(data) {
     if (!data) return [];
-    if (Array.isArray(data.items))   return data.items;    // ✅ 서버가 items를 씀
-    if (Array.isArray(data.content)) return data.content;  // (다른 API 호환)
+    if (Array.isArray(data.items))   return data.items;
+    if (Array.isArray(data.content)) return data.content;
     if (Array.isArray(data))         return data;
     return [];
 }
@@ -34,7 +34,9 @@ const mapPost = (p, board) => ({
 /* ---------- 인기 레시피 ---------- */
 export async function fetchRecipesSorted(sort = "popular", page = 1, size = 8) {
     try {
-        const { data } = await http.get("/api/recipes", { params: { sort, page, size } });
+        const { data } = await openHttp.get("/api/recipes", {
+            params: { sort, page, size },
+        });
         return toList(data).map(mapRecipe).slice(0, size);
     } catch (e) {
         console.warn("fetchRecipesSorted failed:", e);
@@ -50,11 +52,11 @@ export async function fetchBoardList(
     try {
         const code = normalizeBoard(board);
         const pg = Math.max(0, page - 1); // 0-based
-        const { data } = await http.get(`/api/community/${code}`, {
+        const { data } = await openHttp.get(`/api/community/${code}`, {
             params: { size, sort, page: pg },
         });
         const list = toList(data).map((p) => mapPost(p, board));
-        return list.slice(0, size);        // ✅ 최대 6개로 제한
+        return list.slice(0, size);
     } catch (e) {
         console.warn("fetchBoardList failed:", board, e);
         return [];
@@ -67,8 +69,8 @@ export async function fetchHotPosts(size = 6) {
         const boards = ["free", "recipe", "info"];
         const results = await Promise.allSettled(
             boards.map((b) =>
-                http.get(`/api/community/${normalizeBoard(b)}`, {
-                    params: { size: 20, sort: "latest", page: 0 }, // ✅ query 제거
+                openHttp.get(`/api/community/${normalizeBoard(b)}`, {
+                    params: { size: 20, sort: "latest", page: 0 },
                 })
             )
         );

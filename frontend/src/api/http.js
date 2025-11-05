@@ -1,21 +1,30 @@
 // src/api/http.js
 import axios from "axios";
 
-export const http = axios.create({
-    baseURL: import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8080",
-    withCredentials: true,
+const baseURL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8080";
+
+/** 1) 공개용 클라이언트 (쿠키 X, 토큰 X) */
+export const openHttp = axios.create({
+    baseURL,
+    withCredentials: false,   // ❌ 쿠키 안 보냄
 });
 
-/** 요청 인터셉터: accessToken 헤더에 붙이기 */
-http.interceptors.request.use((config) => {
+/** 2) 인증이 필요한 요청용 클라이언트 (쿠키 O, 토큰 O) */
+export const authHttp = axios.create({
+    baseURL,
+    withCredentials: true,    // ✅ refreshToken 쿠키 보내려면 true
+});
+
+/** --- authHttp 에만 인터셉터 달기 --- */
+
+// 요청 인터셉터: accessToken 헤더에 붙이기
+authHttp.interceptors.request.use((config) => {
     const token = sessionStorage.getItem("accessToken");
     if (token) {
         config.headers.Authorization = `Bearer ${token}`;
     }
 
-    // 🔥 FormData 인 경우에는 Content-Type 강제로 세팅하지 않는다
     const isFormData = config.data instanceof FormData;
-
     if (!isFormData && !config.headers["Content-Type"]) {
         config.headers["Content-Type"] = "application/json";
     }
@@ -23,40 +32,27 @@ http.interceptors.request.use((config) => {
     return config;
 });
 
-
-/** 응답 인터셉터: 401 → /users/refresh 한 번만 시도 */
+// 응답 인터셉터: 401 → /users/refresh 한 번만 시도
 let isRefreshing = false;
 
-http.interceptors.response.use(
+authHttp.interceptors.response.use(
     (response) => response,
     async (error) => {
         const originalRequest = error.config;
         const { response } = error;
 
-        // 네트워크 에러 등
-        if (!response) {
-            return Promise.reject(error);
-        }
+        if (!response) return Promise.reject(error);
+        if (response.status !== 401) return Promise.reject(error);
 
-        // 401 아니면 그냥 통과
-        if (response.status !== 401) {
-            return Promise.reject(error);
-        }
-
-        // 🔥 새 탭/새 세션이면 자동 재발급 안 함
         const isLoggedIn = sessionStorage.getItem("isLoggedIn");
-        if (!isLoggedIn) {
-            return Promise.reject(error);
-        }
+        if (!isLoggedIn) return Promise.reject(error);
 
-        // 이미 이 요청에서 한 번 재시도했다면 더 안 함
         if (originalRequest._retry) {
             sessionStorage.clear();
             window.location.href = "/login";
             return Promise.reject(error);
         }
 
-        // 이미 다른 요청이 refresh 중이면 기다렸다가 다시 시도
         if (isRefreshing) {
             return new Promise((resolve, reject) => {
                 const check = setInterval(() => {
@@ -66,7 +62,7 @@ http.interceptors.response.use(
                         if (newToken) {
                             originalRequest.headers.Authorization = `Bearer ${newToken}`;
                             originalRequest._retry = true;
-                            resolve(http(originalRequest));
+                            resolve(authHttp(originalRequest));
                         } else {
                             reject(error);
                         }
@@ -75,10 +71,9 @@ http.interceptors.response.use(
             });
         }
 
-        // 여기서 실제 /refresh 호출
         isRefreshing = true;
         try {
-            const res = await http.post("/api/users/refresh");
+            const res = await authHttp.post("/api/users/refresh");
             const newAccessToken = res.data.accessToken;
 
             sessionStorage.setItem("accessToken", newAccessToken);
@@ -86,9 +81,8 @@ http.interceptors.response.use(
             originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
             originalRequest._retry = true;
 
-            return http(originalRequest);
+            return authHttp(originalRequest);
         } catch (e) {
-            // refresh 실패 → 완전 로그아웃
             sessionStorage.clear();
             window.location.href = "/login";
             return Promise.reject(e);
