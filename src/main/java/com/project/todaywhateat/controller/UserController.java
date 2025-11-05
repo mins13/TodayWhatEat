@@ -13,7 +13,10 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.util.HashMap;
 import java.util.Map;
 @CrossOrigin(
-        origins = "http://localhost:5173",   // 프론트 주소
+        origins = {
+                "http://localhost:5173",
+                "https://today-what-eat.vercel.app"
+        },  // 프론트 주소
         allowCredentials = "true"            // 🔥 쿠키/withCredentials 허용
 )
 @RestController
