@@ -195,3 +195,17 @@
     .home-grid { grid-template-columns: 1fr; }
     .recipe-grid { grid-template-columns: repeat(2, 1fr); }
 }
+/* === Main.css 맨 아래에 추가 === */
+@media (max-width: 480px) {
+    .recipe-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .boards-grid {
+        gap: 8px;
+    }
+
+    .card-head h3 {
+        font-size: 16px;
+    }
+}

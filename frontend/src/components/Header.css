@@ -138,3 +138,48 @@
     text-decoration: none;
 }
 .admin-pill:hover{ background: #fafbff; }
+/* === Header.css 맨 아래에 추가 === */
+@media (max-width: 768px) {
+    .site-title {
+        font-size: 1.6rem;
+        margin: 1rem 0 0.3rem;
+    }
+
+    .nav-bar {
+        flex-direction: column;
+        align-items: center;
+        gap: 0.4rem;
+    }
+
+    .nav-menu-center {
+        gap: 1.5rem;
+        font-size: 0.95rem;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+
+    .auth-links {
+        position: static;
+        width: 100%;
+        justify-content: center;
+        margin-top: 0.3rem;
+        font-size: 0.9rem;
+    }
+
+    .nav-divider,
+    .nav-divider-up {
+        margin: 0.8rem auto 1rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .nav-menu-center {
+        gap: 1rem;
+        font-size: 0.9rem;
+    }
+
+    .auth-links {
+        flex-wrap: wrap;
+        row-gap: 4px;
+    }
+}

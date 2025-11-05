@@ -140,3 +140,15 @@
 .badge-initial { background:#f6f6f6; }
 .badge-now { background:#eef9ff; }
 .badge-used { background:#fff4ee; }
+
+@media (max-width: 768px) {
+    .modal-content.list-modal {
+        width: 95vw;
+        height: 80vh;
+        padding: 1rem;
+    }
+
+    .ingredient-item {
+        width: 100%;
+    }
+}

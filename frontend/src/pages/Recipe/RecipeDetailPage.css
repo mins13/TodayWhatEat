@@ -447,3 +447,26 @@
     }
 }
 
+/* === RecipeDetailPage.css 맨 아래에 추가 === */
+@media (max-width: 900px) {
+    .recipe-detail-wrapper {
+        flex-direction: column;
+    }
+
+    .recipe-detail-left-panel {
+        width: 100%;
+        margin-bottom: 1.5rem;
+    }
+
+    .recipe-detail-right-panel {
+        padding: 1.5rem 1rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .recipe-detail-image {
+        width: 100%;
+        height: 220px;
+    }
+}
+

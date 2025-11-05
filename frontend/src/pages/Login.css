@@ -63,3 +63,9 @@
     text-align: left;
 }
 
+@media (max-width: 480px) {
+    .login-box {
+        width: 90%;
+        padding: 24px 18px;
+    }
+}

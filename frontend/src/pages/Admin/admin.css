@@ -487,3 +487,23 @@
 }
 .pager .pager-nav:hover{ background:#fafbff; }
 .pager .pager-nav:disabled{ opacity:.45; cursor:not-allowed; }
+
+
+@media (max-width: 900px) {
+    .admin-shell {
+        grid-template-columns: 1fr;
+    }
+
+    .admin-side {
+        flex-direction: row;
+        gap: 8px;
+        overflow-x: auto;
+        padding: 10px 12px;
+        border-right: 0;
+        border-bottom: 1px solid var(--line);
+    }
+
+    .brand {
+        display: none;
+    }
+}

@@ -34,3 +34,36 @@ a {
   align-items: center;
   flex: 1;
 }
+/* === RecipePage.css 또는 공통 커뮤니티 레이아웃 근처 맨 아래에 추가 === */
+@media (max-width: 768px) {
+  .community-wrapper {
+    flex-direction: column;
+    margin: 1.5rem auto;
+    gap: 1.2rem;
+  }
+
+  .left-panel,
+  .right-panel {
+    width: 100%;
+  }
+
+  /* 커뮤니티 / 레시피 사이드바 공통 */
+  .sidebar,
+  .recipe-sidebar {
+    width: 100%;
+    flex-direction: row;
+    border-right: 0;
+    border-bottom: 1px solid #ddd;
+    padding: 1rem 0;
+    gap: 0.5rem;
+    overflow-x: auto;
+  }
+
+  .sidebar-item,
+  .sidebar-link {
+    flex: 1 0 auto;
+    white-space: nowrap;
+    border-top: 0;
+    border-bottom: 0;
+  }
+}

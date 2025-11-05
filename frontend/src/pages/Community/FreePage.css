@@ -123,3 +123,37 @@
     opacity: 0.4;
 }
 
+@media (max-width: 768px) {
+    .notice-search,
+    .free-search,
+    .info-search,
+    .recipe-search {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .notice-write-btn,
+    .free-write-btn,
+    .info-write-btn,
+    .recipe-write-btn {
+        float: none;
+        align-self: flex-end;
+        margin-top: 0.5rem;
+    }
+
+    .notice-item,
+    .free-item,
+    .info-item,
+    .recipe-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.6rem;
+    }
+
+    .notice-right,
+    .free-right,
+    .info-right,
+    .recipe-right {
+        text-align: left;
+    }
+}

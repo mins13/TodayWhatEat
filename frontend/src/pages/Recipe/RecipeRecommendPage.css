@@ -260,3 +260,39 @@
     border-top: 1px solid #ccc;
     color: #e54848;
 }
+
+/* === RecipeRecommendPage.css 맨 아래에 추가 === */
+@media (max-width: 768px) {
+    .recommend-recipe-wrapper {
+        flex-direction: column;
+    }
+
+    .recommend-recipe-content {
+        padding: 1.5rem 1rem;
+    }
+
+    .recommend-searchbar-top {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .recommend-searchbox {
+        max-width: none;
+    }
+
+    .recommend-filterbar {
+        padding: 0.8rem;
+    }
+
+    .filter-section {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .filter-label {
+        width: auto;
+        text-align: left;
+        padding-top: 0;
+        margin-bottom: 0.3rem;
+    }
+}

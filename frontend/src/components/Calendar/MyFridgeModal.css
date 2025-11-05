@@ -87,3 +87,15 @@
 .my-fridge-button:hover {
     background-color: #f472b6; /* 진한 핑크 */
 }
+
+@media (max-width: 768px) {
+    .modal-content.fridge-modal {
+        width: 95vw;
+        height: 80vh;
+        padding: 1rem;
+    }
+
+    .fridge-item-list {
+        grid-template-columns: 1fr;
+    }
+}
