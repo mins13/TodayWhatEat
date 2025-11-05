@@ -1,6 +1,8 @@
-import React, { useState, useRef, useCallback } from "react";
+// src/pages/Calendar.jsx (대충 이런 위치일 거라 가정)
+// 경로는 프로젝트 구조에 맞게 조절해줘! ../api/http 가 맞는지만 한 번 확인
+
+import React, { useState, useRef, useCallback, useEffect } from "react";
 import { format } from "date-fns";
-import { useEffect } from "react";
 import SmallCalendar from "../components/Calendar/SmallCalendar";
 import ExpirationList from "../components/Calendar/ExpirationList";
 import MemoPad from "../components/Calendar/MemoPad";
@@ -8,9 +10,8 @@ import CalendarMain from "../components/Calendar/CalendarMain";
 import IngredientModal from "../components/Calendar/IngredientModal";
 import IngredientListModal from "../components/Calendar/IngredientListModal";
 import MyFridgeModal from "../components/Calendar/MyFridgeModal";
-import axios from "axios";
+import { http } from "../api/http";   // ✅ axios 대신 우리 공용 http 사용
 import "./Calendar.css";
-
 
 function Calendar() {
     const [currentDate, setCurrentDate] = useState(new Date());
@@ -24,91 +25,98 @@ function Calendar() {
     const [selectedDateItems, setSelectedDateItems] = useState([]);
     const lastCountRef = useRef({});
     const [listVersion, setListVersion] = useState(0);
-    // 상태 추가
     const [isFridgeOpen, setIsFridgeOpen] = useState(false);
+
+    // localStorage에 초기 수량 저장해서 차수 구분
     const INITIAL_KEY = "fridgeInitialCounts";
-    const getInitialCountMap = () => { try { return JSON.parse(localStorage.getItem(INITIAL_KEY)) || {}; } catch { return {}; } };
-    const setInitialCountMap = (map) => localStorage.setItem(INITIAL_KEY, JSON.stringify(map));
+    const getInitialCountMap = () => {
+        try {
+            return JSON.parse(localStorage.getItem(INITIAL_KEY)) || {};
+        } catch {
+            return {};
+        }
+    };
+    const setInitialCountMap = (map) =>
+        localStorage.setItem(INITIAL_KEY, JSON.stringify(map));
 
+    // ✅ 여기서 이제 axios 말고 http 사용
     const fetchIngredients = useCallback(async () => {
-              try {
-                        const token = localStorage.getItem("token");
-                        const res = await axios.get("/api/fridge/list", {
-                                headers: { Authorization: `Bearer ${token}` }
-                       });
-                        const initialMap = getInitialCountMap();
-                        const lastCounts = lastCountRef.current;
-                        const fetched = res.data.map(item => {
-                            const id = item.id;
-                            const current = Number(item.quantity);
-                            const key = `${id}:${item.purchaseDate}`; // 차수 구분
-                            const prevInit = initialMap[key];
-                            const prevCount  = lastCounts[key];
-                            let nextInit;
+        try {
+            const res = await http.get("/api/fridge/list");
+            const initialMap = getInitialCountMap();
+            const lastCounts = lastCountRef.current;
 
-                            if (prevCount == null && prevInit == null) {
-                                nextInit = current;
-                            }else if (prevCount != null && current > prevCount) {
-                                const inc = current - prevCount;
-                                nextInit = (prevInit ?? prevCount ?? 0) + inc;
-                            } else {
-                                nextInit = prevInit ?? (prevCount ?? current);
-                            }
-                            initialMap[key] = nextInit;
-                            lastCounts[key] = current;
+            const fetched = res.data.map((item) => {
+                const id = item.id;
+                const current = Number(item.quantity);
+                const key = `${id}:${item.purchaseDate}`; // 차수 구분
+                const prevInit = initialMap[key];
+                const prevCount = lastCounts[key];
+                let nextInit;
 
-                            const derivedStatus = current > 0 ? "ACTIVE" : "USED";
-                            const derivedUsedAt = current > 0 ? null : (item.usedAt ?? item.usedUpAt ?? null);
-                            const derivedUsedUpAt = current > 0 ? null : (item.usedUpAt ?? null);
+                if (prevCount == null && prevInit == null) {
+                    nextInit = current;
+                } else if (prevCount != null && current > prevCount) {
+                    const inc = current - prevCount;
+                    nextInit = (prevInit ?? prevCount ?? 0) + inc;
+                } else {
+                    nextInit = prevInit ?? (prevCount ?? current);
+                }
 
+                initialMap[key] = nextInit;
+                lastCounts[key] = current;
 
-                                return {
-                                id,
-                                title: item.ingredientName,
-                                date: item.purchaseDate,
-                                count: current, // 현재 수량(0도 포함!)
-                                unit: item.unit,
-                                category: item.category,
-                                purchaseDate: item.purchaseDate,
-                                expireDate: item.expirationDate,
-                                color: item.color,
-                                memo: item.memo,
-                                status: derivedStatus,
-                                usedAt: derivedUsedAt,
-                                usedUpAt: derivedUsedUpAt,
-                                initialCount: nextInit,
-                            };
-                        });
-                        setInitialCountMap(initialMap);
-                        setEvents(fetched);
-                        setListVersion(v => v + 1);
-                    } catch (err) {
-                        console.error("재료 불러오기 실패:", err);
-                    }
-           }, []);
+                const derivedStatus = current > 0 ? "ACTIVE" : "USED";
+                const derivedUsedAt =
+                    current > 0 ? null : item.usedAt ?? item.usedUpAt ?? null;
+                const derivedUsedUpAt = current > 0 ? null : item.usedUpAt ?? null;
+
+                return {
+                    id,
+                    title: item.ingredientName,
+                    date: item.purchaseDate,
+                    count: current,
+                    unit: item.unit,
+                    category: item.category,
+                    purchaseDate: item.purchaseDate,
+                    expireDate: item.expirationDate,
+                    color: item.color,
+                    memo: item.memo,
+                    status: derivedStatus,
+                    usedAt: derivedUsedAt,
+                    usedUpAt: derivedUsedUpAt,
+                    initialCount: nextInit,
+                };
+            });
+
+            setInitialCountMap(initialMap);
+            setEvents(fetched);
+            setListVersion((v) => v + 1);
+        } catch (err) {
+            console.error("재료 불러오기 실패:", err);
+        }
+    }, []);
 
     useEffect(() => {
         if (isListModalOpen && selectedListDate) {
-            const filtered = events.filter(e => e.date === selectedListDate);
+            const filtered = events.filter((e) => e.date === selectedListDate);
             setSelectedDateItems(filtered);
         }
     }, [events, isListModalOpen, selectedListDate]);
 
     useEffect(() => {
-            fetchIngredients();
-         }, [fetchIngredients]);
+        fetchIngredients();
+    }, [fetchIngredients]);
+
     useEffect(() => {
-        // 같은 탭용
         const onFridgeDirty = () => fetchIngredients();
         window.addEventListener("fridge-dirty", onFridgeDirty);
 
-        // 다른 탭/창에서 바뀐 경우
         const onStorage = (e) => {
             if (e.key === "fridgeDirty") fetchIngredients();
         };
         window.addEventListener("storage", onStorage);
 
-        // 탭 전환 후 다시 볼 때도 동기화
         const onVisible = () => {
             if (document.visibilityState === "visible") fetchIngredients();
         };
@@ -121,20 +129,16 @@ function Calendar() {
         };
     }, [fetchIngredients]);
 
-
+    // ✅ 삭제도 http 사용, Authorization 헤더는 인터셉터가 자동 세팅
     const handleDelete = async (target) => {
         try {
-            await axios.delete("/api/fridge/delete", {
-                headers: {
-                    Authorization: `Bearer ${localStorage.getItem("token")}`
-                },
+            await http.delete("/api/fridge/delete", {
                 data: {
                     ingredientName: target.title,
-                    expirationDate: target.expireDate
-                }
+                    expirationDate: target.expireDate,
+                },
             });
             await fetchIngredients();
-
             alert("재료가 삭제되었습니다!");
         } catch (err) {
             console.error("삭제 실패:", err);
@@ -142,26 +146,23 @@ function Calendar() {
         }
     };
 
-    // 날짜 변경
     const handleDateChange = (date) => {
         setCurrentDate(date);
         if (calendarRef.current) {
             const api = calendarRef.current.getApi();
-            api.gotoDate(date); // 달력 동기화
+            api.gotoDate(date);
         }
     };
 
-    // 날짜 클릭 시: 등록 모달
     const handleDateClick = (dateStr) => {
         setSelectedDate(dateStr);
-        setEditTarget(null); // 새로 입력
+        setEditTarget(null);
         setIsModalOpen(true);
     };
 
-    // 이벤트 클릭 시: 수정 모달
     const handleEventClick = (info) => {
         const id = info.event.id || info.event.extendedProps?.id;
-        const found = events.find(e => String(e.id) === String(id));
+        const found = events.find((e) => String(e.id) === String(id));
         setSelectedDate(info.event.startStr);
         setEditTarget(found || info.event.extendedProps || null);
         setIsModalOpen(true);
@@ -174,32 +175,38 @@ function Calendar() {
         setIsListModalOpen(true);
     };
 
-    // 유통기한 임박 재료 필터링 (5일 이내)
     const today = new Date();
     const nearExpiredItems = events
         .map((e) => {
-            const diff = Math.ceil((new Date(e.expireDate) - today) / (1000 * 60 * 60 * 24));
+            const diff = Math.ceil(
+                (new Date(e.expireDate) - today) / (1000 * 60 * 60 * 24)
+            );
             return {
                 ...e,
                 remainingDays: Number.isFinite(diff) ? diff : 9999,
-
             };
         })
-        .filter((item) => item.remainingDays >= 0 && item.remainingDays <= 5 && Number(item.count) > 0);
+        .filter(
+            (item) =>
+                item.remainingDays >= 0 &&
+                item.remainingDays <= 5 &&
+                Number(item.count) > 0
+        );
 
-
-    // 저장 (등록/수정)
+    // ✅ 저장도 http 사용
     const handleSave = async (newEvent) => {
-        if (!newEvent.title || !newEvent.purchaseDate || !newEvent.expireDate) {
+        if (
+            !newEvent.title ||
+            !newEvent.purchaseDate ||
+            !newEvent.expireDate
+        ) {
             alert("재료명, 구매일자, 유통기한은 필수 항목입니다!");
             return;
         }
 
         try {
-
             const nextQty = Number(newEvent.count);
             const payload = {
-
                 id: editTarget?.id || null,
                 ingredientName: newEvent.title,
                 category: newEvent.category,
@@ -211,13 +218,8 @@ function Calendar() {
                 memo: newEvent.memo,
                 status: nextQty > 0 ? "ACTIVE" : "USED",
             };
-            await axios.post("/api/fridge/save", payload, {
-                headers: {
-                    Authorization: `Bearer ${localStorage.getItem("token")}`
-                }
-            });
 
-
+            await http.post("/api/fridge/save", payload);
             await fetchIngredients();
 
             alert("재료가 저장되었습니다!");
@@ -230,23 +232,25 @@ function Calendar() {
         setEditTarget(null);
     };
 
-
-
-
-
-
     return (
         <div className="main-container">
             <div className="content-wrapper">
                 <div className="calendar-page">
                     <div className="left-panel">
-                        <SmallCalendar date={currentDate} onDateChange={handleDateChange}  events={events} onDayDoubleClick={handleDayDoubleClick}/>
-                        <ExpirationList items={nearExpiredItems} /> {/* 유통기한 임박 재료 표시 */}
+                        <SmallCalendar
+                            date={currentDate}
+                            onDateChange={handleDateChange}
+                            events={events}
+                            onDayDoubleClick={handleDayDoubleClick}
+                        />
+                        <ExpirationList items={nearExpiredItems} />
                         <MemoPad />
                     </div>
 
                     <div className="right-panel">
-                        <h2 className="calendar-title">📅 {format(currentDate, "yyyy년 M월")}</h2>
+                        <h2 className="calendar-title">
+                            📅 {format(currentDate, "yyyy년 M월")}
+                        </h2>
                         <CalendarMain
                             currentDate={currentDate}
                             events={events}
@@ -255,11 +259,13 @@ function Calendar() {
                             ref={calendarRef}
                         />
                         <div className="my-fridge-button-wrapper">
-                            <button className="my-fridge-button" onClick={() => setIsFridgeOpen(true)}>
+                            <button
+                                className="my-fridge-button"
+                                onClick={() => setIsFridgeOpen(true)}
+                            >
                                 나의 냉장고
                             </button>
                         </div>
-
                     </div>
 
                     {isModalOpen && (
@@ -281,36 +287,63 @@ function Calendar() {
                             version={listVersion}
                             onClose={() => setIsListModalOpen(false)}
                             onChange={async (type, payload) => {
-                                if (["consume", "restore"].includes(type) && payload?.id != null && payload?.newQuantity != null) {
+                                if (
+                                    ["consume", "restore"].includes(type) &&
+                                    payload?.id != null &&
+                                    payload?.newQuantity != null
+                                ) {
                                     const q = Number(payload.newQuantity);
-                                    setEvents(prev => prev.map(e =>
-                                        e.id === payload.id ? { ...e, count: q, status: q > 0 ? "ACTIVE" : "USED" } : e
-                                    ));
+                                    setEvents((prev) =>
+                                        prev.map((e) =>
+                                            e.id === payload.id
+                                                ? {
+                                                    ...e,
+                                                    count: q,
+                                                    status:
+                                                        q > 0
+                                                            ? "ACTIVE"
+                                                            : "USED",
+                                                }
+                                                : e
+                                        )
+                                    );
                                 }
                             }}
                         />
                     )}
-                    {isFridgeOpen &&(
+
+                    {isFridgeOpen && (
                         <MyFridgeModal
-                            events={events.filter(e => Number(e.count) > 0)}
+                            events={events.filter(
+                                (e) => Number(e.count) > 0
+                            )}
                             onClose={() => setIsFridgeOpen(false)}
                             onChange={async (type, payload) => {
-                                if (payload?.id != null && payload?.newQuantity != null) {
+                                if (
+                                    payload?.id != null &&
+                                    payload?.newQuantity != null
+                                ) {
                                     const newQ = Number(payload.newQuantity);
-                                    setEvents(prev => prev.map(e =>
-                                        e.id === payload.id
-                                            ? { ...e, count: newQ, status: newQ > 0 ? "ACTIVE" : "USED" }  // 0이 되어도 달력(events)에는 남음!
-                                            : e
-                                    ));
+                                    setEvents((prev) =>
+                                        prev.map((e) =>
+                                            e.id === payload.id
+                                                ? {
+                                                    ...e,
+                                                    count: newQ,
+                                                    status:
+                                                        newQ > 0
+                                                            ? "ACTIVE"
+                                                            : "USED",
+                                                }
+                                                : e
+                                        )
+                                    );
                                 }
                                 await fetchIngredients();
                             }}
-                            />
+                        />
                     )}
-
-
                 </div>
-
             </div>
         </div>
     );
