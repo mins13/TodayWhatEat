@@ -57,6 +57,9 @@ public class Post {
         this.updatedAt = LocalDateTime.now();
     }
 
+    @Column(name = "my_recipe_id")
+    private Long recipeId;
+
 
 
 }

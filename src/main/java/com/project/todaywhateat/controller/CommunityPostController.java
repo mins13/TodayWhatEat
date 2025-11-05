@@ -1,7 +1,7 @@
 // com.project.todaywhateat.controller.CommunityPostController
 package com.project.todaywhateat.controller;
 
-import com.project.todaywhateat.service.CommunityPostService;
+import com.project.todaywhateat.service.CommunityService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -17,7 +17,8 @@ import java.util.Map;
 @RequestMapping("/api/community")
 public class CommunityPostController {
 
-    private final CommunityPostService service;
+    // ★ 여기 타입을 CommunityService 로 교체
+    private final CommunityService service;
 
     /** 멀티파트 업로드 전용 (JSON 작성과 같은 경로, consumes 로 구분) */
     @PostMapping(value = "/{board}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -31,6 +32,7 @@ public class CommunityPostController {
             @RequestPart(required = false, name = "files") List<MultipartFile> files,
             Authentication auth
     ) {
+        // ★ CommunityService.create(...) 직접 호출
         long id = service.create(board, title, content, authorName, recipeId, files, auth);
         return Map.of("id", id);
     }

@@ -2,15 +2,15 @@
 package com.project.todaywhateat.service;
 
 import com.project.todaywhateat.Specification.PostSpecs;
-import com.project.todaywhateat.domain.Community.Board;
-import com.project.todaywhateat.domain.Community.Comment;
-import com.project.todaywhateat.domain.Community.Post;
-import com.project.todaywhateat.domain.Community.PostFile;
-import com.project.todaywhateat.domain.Community.PostLike;
+import com.project.todaywhateat.domain.Community.*;
 import com.project.todaywhateat.domain.User;
+import com.project.todaywhateat.domain.my.MyRecipeStep;
 import com.project.todaywhateat.dto.Community.*;
 import com.project.todaywhateat.repository.Community.*;
 import com.project.todaywhateat.repository.UserRepository;
+import com.project.todaywhateat.repository.my.MyRecipeIngredientRepository;
+import com.project.todaywhateat.repository.my.MyRecipeRepository;
+import com.project.todaywhateat.repository.my.MyRecipeStepRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -38,6 +38,11 @@ public class CommunityService {
     private final CommentRepo commentRepo;
     private final PostLikeRepo likeRepo;
     private final UserRepository userRepository;
+
+    // ★ 레시피 관련
+    private final MyRecipeRepository myRecipeRepository;
+    private final MyRecipeIngredientRepository myRecipeIngredientRepository;
+    private final MyRecipeStepRepository myRecipeStepRepository;
 
     // ★ 첨부 저장/조회
     private final PostFileRepo postFileRepo;
@@ -143,6 +148,39 @@ public class CommunityService {
 
         // ★ 레시피 연결이 있다면 이곳에서 DTO 조립 (현재는 없으므로 null)
         PostDetailDto.AttachedRecipeDto recipeDto = null;
+        if (post.getRecipeId() != null) {
+            Long rid = post.getRecipeId();
+            var recipeOpt = myRecipeRepository.findById(rid);
+            if (recipeOpt.isPresent()) {
+                var mr = recipeOpt.get();
+
+                var ingDtos = myRecipeIngredientRepository
+                        .findByRecipe_IdOrderBySortOrderAsc(rid).stream()
+                        .map(g -> new PostDetailDto.IngredientDto(
+                                g.getName(),
+                                // "양 + 단위" 한 줄로
+                                String.join(" ",
+                                        g.getQuantity() != null ? g.getQuantity() : "",
+                                        g.getUnit()      != null ? g.getUnit()      : ""
+                                ).trim()
+                        ))
+                        .toList();
+
+                var stepTexts = myRecipeStepRepository
+                        .findByRecipe_IdOrderBySortOrderAsc(rid).stream()
+                        .map(MyRecipeStep::getContent)
+                        .toList();
+
+                recipeDto = new PostDetailDto.AttachedRecipeDto(
+                        mr.getId(),
+                        mr.getTitle(),
+                        mr.getImageUrl(),
+                        List.of(),           // 태그 필드가 없으니 일단 빈 리스트
+                        ingDtos,
+                        stepTexts
+                );
+            }
+        }
 
         // ★ 첨부/레시피까지 포함해서 반환
         return PostDetailDto.from(post, liked, mine, files, recipeDto);
@@ -218,6 +256,7 @@ public class CommunityService {
         p.setAuthorName((req.authorName() == null || req.authorName().isBlank()) ? "익명" : req.authorName());
         p.setTitle(req.title());
         p.setContent(req.content());
+        p.setRecipeId(req.recipeId());
         return postRepo.save(p).getId();
     }
 
