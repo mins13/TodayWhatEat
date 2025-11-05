@@ -15,8 +15,12 @@ import java.util.UUID;
 @Service
 public class FileStorageService {
 
+    // 업로드 루트 디렉터리 (프로젝트 기준 /uploads)
     private final Path root = Paths.get("uploads").toAbsolutePath().normalize();
 
+    /**
+     * 파일을 저장하고 브라우저에서 접근 가능한 URL(/files/연/월/파일명)을 반환
+     */
     public String savePublic(MultipartFile mf) throws IOException {
         if (!Files.exists(root)) Files.createDirectories(root);
 
@@ -42,10 +46,64 @@ public class FileStorageService {
             Files.copy(in, dest, StandardCopyOption.REPLACE_EXISTING);
         }
 
-        // ★ 브라우저가 접근할 공개 URL(항상 슬래시로 시작, 백슬래시 금지)
+        // 브라우저가 접근할 공개 URL(항상 슬래시로 시작, 백슬래시 금지)
         String publicUrl = "/files/" + d.getYear() + "/"
                 + String.format("%02d", d.getMonthValue()) + "/"
                 + filename;
         return publicUrl;
+    }
+
+    /**
+     * savePublic 로 저장된 파일을 조용히 삭제.
+     * - url 이 null/blank 이면 무시
+     * - 삭제 실패해도 예외를 던지지 않음
+     *
+     * 예시 입력:
+     *   "/files/2025/11/abcd.png"
+     *   "http://localhost:8080/files/2025/11/abcd.png"
+     */
+    public void deleteQuietly(String url) {
+        if (url == null || url.isBlank()) return;
+
+        try {
+            String pathPart = url;
+
+            // 쿼리스트링 제거
+            int q = pathPart.indexOf('?');
+            if (q >= 0) {
+                pathPart = pathPart.substring(0, q);
+            }
+
+            // 절대 URL이면 /files/ 부터 잘라내기
+            if (pathPart.startsWith("http://") || pathPart.startsWith("https://")) {
+                int idx = pathPart.indexOf("/files/");
+                if (idx >= 0) {
+                    pathPart = pathPart.substring(idx); // "/files/..."
+                }
+            }
+
+            // 백슬래시 → 슬래시
+            pathPart = pathPart.replace("\\", "/");
+
+            // 앞의 / 제거
+            if (pathPart.startsWith("/")) {
+                pathPart = pathPart.substring(1); // "files/..."
+            }
+
+            // 앞의 "files/" 제거 → 실제 로컬 경로 부분만 남김
+            if (pathPart.startsWith("files/")) {
+                pathPart = pathPart.substring("files/".length()); // "2025/11/abcd.png"
+            }
+
+            // uploads/2025/11/abcd.png
+            Path target = root.resolve(pathPart).normalize();
+
+            // 안전장치: root 밖이면 삭제 안 함
+            if (!target.startsWith(root)) return;
+
+            Files.deleteIfExists(target);
+        } catch (Exception ignore) {
+            // 실패해도 조용히 무시 (필요하면 로그 추가)
+        }
     }
 }

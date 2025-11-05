@@ -270,9 +270,17 @@ public class CommunityService {
     private void deleteInternal(String boardCode, Long id, Long userId){
         Post p = findPost(boardCode, id);
         if (p.getUserId() != null && !p.getUserId().equals(userId)) throw forbidden();
+
+        Long postId = p.getId();
+
+        // 1. 좋아요, 댓글, 첨부 먼저 삭제
+        likeRepo.deleteByPost_Id(postId);
+        commentRepo.deleteByPost_Id(postId);
+        postFileRepo.deleteByPost_Id(postId);
+
+        // 2. 마지막으로 게시글 삭제
         postRepo.delete(p);
     }
-
     private boolean toggleLikeInternal(String boardCode, Long id, Long userId){
         Post p = findPost(boardCode, id);
         boolean liked = likeRepo.existsByPost_IdAndUserId(p.getId(), userId);
@@ -360,5 +368,16 @@ public class CommunityService {
         // if (recipeId != null) { ... post.setAttachedRecipeId(recipeId); postRepo.save(post); }
 
         return postId;
+    }
+
+    @Transactional
+    public void adminDeletePost(String boardCode, Long id) {
+        Post p = findPost(boardCode, id);
+        Long postId = p.getId();
+
+        likeRepo.deleteByPost_Id(postId);
+        commentRepo.deleteByPost_Id(postId);
+        postFileRepo.deleteByPost_Id(postId);
+        postRepo.delete(p);
     }
 }

@@ -42,7 +42,7 @@ function Header({ isLoggedIn, setIsLoggedIn }) {
                     <div className="nav-menu-center">
                         <Link to="/calendar">calendar</Link>
                         <Link to="/recipe">recipe</Link>
-                        <Link to="/community">community</Link>
+                        <Link to="/community/notice">community</Link>
                     </div>
 
                     {/* 로그인/로그아웃, 인사말 */}

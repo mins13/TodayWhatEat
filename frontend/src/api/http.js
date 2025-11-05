@@ -12,11 +12,17 @@ http.interceptors.request.use((config) => {
     if (token) {
         config.headers.Authorization = `Bearer ${token}`;
     }
-    if (!config.headers["Content-Type"]) {
+
+    // 🔥 FormData 인 경우에는 Content-Type 강제로 세팅하지 않는다
+    const isFormData = config.data instanceof FormData;
+
+    if (!isFormData && !config.headers["Content-Type"]) {
         config.headers["Content-Type"] = "application/json";
     }
+
     return config;
 });
+
 
 /** 응답 인터셉터: 401 → /users/refresh 한 번만 시도 */
 let isRefreshing = false;

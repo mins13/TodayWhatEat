@@ -377,3 +377,24 @@
         grid-template-columns: 1fr;
     }
 }
+
+
+.attachments-file-list {
+    margin-top: 8px;
+    padding-left: 0;
+    list-style: none;
+}
+
+.attachments-file-list li {
+    font-size: 14px;
+    margin-bottom: 4px;
+}
+
+.attachments-file-list a {
+    text-decoration: none;
+    color: #2563eb;
+}
+
+.attachments-file-list a:hover {
+    text-decoration: underline;
+}

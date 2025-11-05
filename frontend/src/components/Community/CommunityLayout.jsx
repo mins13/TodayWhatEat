@@ -7,7 +7,7 @@ export default function CommunityLayout() {
     const location = useLocation();
 
     const tabs = [
-        { path: "/community", label: "공지사항" },
+        { path: "/community/notice", label: "공지사항" },
         { path: "/community/free", label: "자유 게시판" },
         { path: "/community/recipe", label: "레시피 게시판" },
         { path: "/community/info", label: "정보 게시판" },

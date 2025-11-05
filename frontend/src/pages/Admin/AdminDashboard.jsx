@@ -137,7 +137,7 @@ export default function AdminDashboard() {
                         <tr key={n.id}>
                             <td>{n.id}</td>
                             <td className="ellipsis">
-                                <a className="linklike" href={`/admin/notices/${n.id}`} title={n.title}>{n.title}</a>
+                                <a className="linklike" href={`/community/notice/${n.id}`} title={n.title}>{n.title}</a>
                             </td>
                             <td>{(n.createdAt || "").replace("T", " ").slice(0, 16)}</td>
                         </tr>

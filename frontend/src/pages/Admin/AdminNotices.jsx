@@ -6,6 +6,7 @@ import {
     createNotice,
     updateNotice,
     deleteNotice,
+    deleteNoticeAttachment,
 } from "../../api/adminNoticeApi";
 
 /* SWR 유틸 */
@@ -32,6 +33,7 @@ export default function AdminNotices() {
     const [page, setPage] = useState(0);
     const [data, setData] = useState(null); // { items, total }
     const [editing, setEditing] = useState(null);
+
 
     const acRef = useRef(null);
     const keyBase = "adm:notices";
@@ -61,18 +63,21 @@ export default function AdminNotices() {
                 setData(cached);
                 setPage(p);
             } else {
-                // 첫 진입 로딩 최소화
                 setData(prev => prev ?? null);
             }
             const fresh = await promise;
             setData(fresh);
             setPage(p);
         } catch (e) {
-            if (e?.name === "AbortError") return;
+            // 🔽 여기만 이렇게 수정!
+            if (e?.name === "AbortError" || e?.code === "ERR_CANCELED") {
+                return;   // 취소된 요청은 조용히 무시
+            }
             console.error(e);
             setData({ items: [], total: 0 });
         }
     };
+
 
     useEffect(() => { load(0, query).catch(console.error); /* 최초 로드 */ }, [query]);
 
@@ -81,7 +86,14 @@ export default function AdminNotices() {
     // 수정/작성 열기
     const openEdit = async (item) => {
         if (!item) {
-            setEditing({ id: null, title: "", content: "", pinned: false });
+            setEditing({
+                id: null,
+                title: "",
+                content: "",
+                pinned: false,
+                attachments: [],   // 기존 첨부(수정 시용)
+                files: [],         // 새로 업로드할 파일들
+            });
             return;
         }
         const ac = new AbortController();
@@ -92,6 +104,8 @@ export default function AdminNotices() {
                 title: d.title ?? "",
                 content: d.content ?? "",
                 pinned: !!d.pinned,
+                attachments: d.attachments || [], // 백엔드에서 내려주는 첨부 목록
+                files: [],
             });
         } catch (e) {
             if (e?.name !== "AbortError") {
@@ -109,10 +123,30 @@ export default function AdminNotices() {
         if (!title) return alert("제목은 필수입니다.");
         if (!content) return alert("내용은 필수입니다.");
 
-        if (editing.id) {
-            await updateNotice(editing.id, { title, content, pinned });
+        const hasFiles = editing.files && editing.files.length > 0;
+
+        if (hasFiles) {
+            const fd = new FormData();
+            fd.append("title", title);
+            fd.append("content", content);
+            fd.append("pinned", String(pinned)); // 백엔드에서 boolean 파싱
+
+            editing.files.forEach((file) => {
+                fd.append("files", file); // name="files"
+            });
+
+            if (editing.id) {
+                await updateNotice(editing.id, fd);
+            } else {
+                await createNotice(fd);
+            }
         } else {
-            await createNotice({ title, content, pinned });
+            const payload = { title, content, pinned };
+            if (editing.id) {
+                await updateNotice(editing.id, payload);
+            } else {
+                await createNotice(payload);
+            }
         }
 
         // 캐시 무효화
@@ -123,6 +157,28 @@ export default function AdminNotices() {
         setEditing(null);
         await load(0, query);
     };
+
+    const removeAttachment = async (fileId) => {
+        if (!editing?.id) return;
+
+        if (!window.confirm("이 첨부파일을 삭제할까요?")) return;
+
+        try {
+            await deleteNoticeAttachment(editing.id, fileId);
+
+            // 상태에서 해당 파일 제거
+            setEditing((prev) => ({
+                ...prev,
+                attachments: (prev.attachments || []).filter(
+                    (a) => a.id !== fileId
+                ),
+            }));
+        } catch (e) {
+            console.error(e);
+            alert("첨부파일 삭제에 실패했습니다.");
+        }
+    };
+
 
     const remove = async (id) => {
         if (!window.confirm("공지 삭제할까요?")) return;
@@ -196,24 +252,90 @@ export default function AdminNotices() {
                 <div className="modal">
                     <div className="modal-card" style={{ maxWidth: 720 }}>
                         <h3>{editing.id ? "공지 수정" : "공지 작성"}</h3>
+
                         <label>제목
                             <input
                                 value={editing.title}
-                                onChange={(e) => setEditing({ ...editing, title: e.target.value })}
+                                onChange={(e) =>
+                                    setEditing({ ...editing, title: e.target.value })
+                                }
                             />
                         </label>
+
                         <label>내용
                             <textarea
                                 value={editing.content}
-                                onChange={(e) => setEditing({ ...editing, content: e.target.value })}
+                                onChange={(e) =>
+                                    setEditing({ ...editing, content: e.target.value })
+                                }
                                 rows={10}
                             />
                         </label>
+
+                        {/* 🔽 여기 추가: 파일 첨부 */}
+                        <label>
+                            첨부 파일
+                            <input
+                                type="file"
+                                multiple
+                                onChange={(e) =>
+                                    setEditing((prev) => ({
+                                        ...prev,
+                                        files: Array.from(e.target.files || []),
+                                    }))
+                                }
+                            />
+                        </label>
+
+                        {/* 기존 첨부(수정 모드일 때) */}
+                        {editing.attachments && editing.attachments.length > 0 && (
+                            <div style={{ marginTop: 8, fontSize: 13 }}>
+                                <div style={{ marginBottom: 4 }}>등록된 첨부:</div>
+                                <ul style={{ paddingLeft: 18 }}>
+                                    {editing.attachments.map((f) => (
+                                        <li
+                                            key={f.id}
+                                            style={{
+                                                display: "flex",
+                                                alignItems: "center",
+                                                gap: 8,
+                                            }}
+                                        >
+                                            <a href={f.url} target="_blank" rel="noreferrer">
+                                                {f.filename}
+                                            </a>
+                                            <button
+                                                type="button"
+                                                className="link danger"  // AdminPosts에서 쓰는 스타일 있으면 그대로 사용
+                                                onClick={() => removeAttachment(f.id)}
+                                            >
+                                                삭제
+                                            </button>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        )}
+
+                        {/* 이번에 새로 올릴 파일 프리뷰 */}
+                        {editing.files && editing.files.length > 0 && (
+                            <div style={{ marginTop: 8, fontSize: 13 }}>
+                                <div style={{ marginBottom: 4 }}>업로드 예정:</div>
+                                <ul style={{ paddingLeft: 18 }}>
+                                    {editing.files.map((f, i) => (
+                                        <li key={i}>{f.name}</li>
+                                    ))}
+                                </ul>
+                            </div>
+                        )}
+
                         <label style={{ display: "flex", alignItems: "center", gap: 8 }}>
                             <input
                                 type="checkbox"
                                 checked={!!editing.pinned}
-                                onChange={(e) => setEditing({ ...editing, pinned: e.target.checked })}
+                                onChange={(e) =>
+                                    setEditing({ ...editing, pinned: e.target.checked })
+                                }
                             />
                             상단 고정
                         </label>
@@ -225,6 +347,7 @@ export default function AdminNotices() {
                     </div>
                 </div>
             )}
+
         </div>
     );
 }

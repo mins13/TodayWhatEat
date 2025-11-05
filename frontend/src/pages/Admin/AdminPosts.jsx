@@ -223,6 +223,76 @@ export default function AdminPosts() {
                                     <div style={{ whiteSpace: "pre-wrap" }}>
                                         {preview.post.content}
                                     </div>
+                                    {/* 🔻 첨부 이미지들 */}
+                                    {preview.post.attachments && preview.post.attachments.length > 0 && (
+                                        <div
+                                            style={{
+                                                marginTop: 10,
+                                                display: "flex",
+                                                flexWrap: "wrap",
+                                                gap: 8,
+                                            }}
+                                        >
+                                            {preview.post.attachments.map((f) => (
+                                                <a
+                                                    key={f.id}
+                                                    href={f.url}
+                                                    target="_blank"
+                                                    rel="noreferrer"
+                                                    style={{ display: "inline-block" }}
+                                                >
+                                                    <img
+                                                        src={f.url}
+                                                        alt={f.filename}
+                                                        style={{
+                                                            maxWidth: 120,
+                                                            maxHeight: 120,
+                                                            objectFit: "cover",
+                                                            borderRadius: 6,
+                                                            border: "1px solid #e5e7eb",
+                                                        }}
+                                                    />
+                                                </a>
+                                            ))}
+                                        </div>
+                                    )}
+                                    {/* 🔻 나만의 레시피 첨부 */}
+                                    {preview.post.recipe && (
+                                        <div
+                                            style={{
+                                                marginTop: 16,
+                                                padding: 12,
+                                                borderRadius: 10,
+                                                border: "1px solid #e5e7eb",
+                                                background: "#f9fafb",
+                                                display: "flex",
+                                                gap: 12,
+                                                alignItems: "flex-start",
+                                            }}
+                                        >
+                                            {preview.post.recipe.imageUrl && (
+                                                <img
+                                                    src={preview.post.recipe.imageUrl}
+                                                    alt={preview.post.recipe.title}
+                                                    style={{
+                                                        width: 100,
+                                                        height: 100,
+                                                        objectFit: "cover",
+                                                        borderRadius: 8,
+                                                        flexShrink: 0,
+                                                    }}
+                                                />
+                                            )}
+                                            <div>
+                                                <div style={{ fontWeight: 600, marginBottom: 4 }}>
+                                                    [나만의 레시피] {preview.post.recipe.title}
+                                                </div>
+                                                <div style={{ fontSize: 13, color: "#6b7280" }}>
+                                                    레시피 ID: {preview.post.recipe.id}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
                                     <div style={{ marginTop: 8, color: "#6b7280", fontSize: 13 }}>
                                         ❤ {preview.post.likesCount} · 조회 {preview.post.viewsCount} · 작성자{" "}
                                         {preview.post.authorName}

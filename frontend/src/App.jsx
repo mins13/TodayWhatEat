@@ -64,7 +64,7 @@ function App() {
                                                           setIsLoggedIn={setIsLoggedIn}><Signup/></AppLayout>}/>
                 <Route path="/calendar" element={<ProtectedRoute><AppLayout isLoggedIn={isLoggedIn}
                                                                             setIsLoggedIn={setIsLoggedIn}><CalendarPage/></AppLayout></ProtectedRoute>}/>
-                <Route path="/community" element={<AppLayout isLoggedIn={isLoggedIn}
+                <Route path="/community/notice" element={<AppLayout isLoggedIn={isLoggedIn}
                                                              setIsLoggedIn={setIsLoggedIn}><NoticePage/></AppLayout>}/>
                 <Route path="/community/free" element={<AppLayout isLoggedIn={isLoggedIn} setIsLoggedIn={setIsLoggedIn}><FreePage/></AppLayout>}/>
                 <Route path="/community/recipe" element={<AppLayout isLoggedIn={isLoggedIn}

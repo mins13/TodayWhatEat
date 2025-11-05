@@ -43,7 +43,7 @@ export default function Main() {
                     <div className="card">
                         <div className="card-head">
                             <h3>인기 레시피</h3>
-                            <button className="link" onClick={() => nav("/recipe?sort=popular")}>더 보기</button>
+                            <button className="link" onClick={() => nav("/recipe")}>더 보기</button>
                         </div>
                         <RecipeThumbGrid items={popular} onClick={(id)=>nav(`/recipe/${id}`)} />
                     </div>
@@ -52,7 +52,7 @@ export default function Main() {
                     <div className="card">
                         <div className="card-head">
                             <h3>HOT 게시물 🔥</h3>
-                            <button className="link" onClick={() => nav("/community?tab=hot")}>더 보기</button>
+                            <button className="link" onClick={() => nav("/community/free")}>더 보기</button>
                         </div>
                         <MiniBoardList
                             items={hotPosts}

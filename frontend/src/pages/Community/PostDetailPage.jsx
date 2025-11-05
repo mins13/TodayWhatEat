@@ -343,8 +343,10 @@ export default function PostDetailPage() {
         }
     };
 
-    /* ========= 라이트박스(이미지 확대 보기) ========= */
+    /* ========= 첨부/라이트박스 ========= */
     const attachments = post?.attachments ?? [];
+
+    // 이미지 첨부만 필터
     const imageAttachments = useMemo(
         () =>
             Array.isArray(attachments)
@@ -356,6 +358,19 @@ export default function PostDetailPage() {
                 : [],
         [attachments]
     );
+
+    // 이미지가 아닌 첨부(pdf, hwp 등)
+    const fileAttachments = useMemo(
+        () =>
+            Array.isArray(attachments)
+                ? attachments.filter((a) => {
+                    const src = a?.url || a?.filename || "";
+                    return !/\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(src);
+                })
+                : [],
+        [attachments]
+    );
+
     const [lightboxOpen, setLightboxOpen] = useState(false);
     const [lightboxIdx, setLightboxIdx] = useState(0);
 
@@ -369,7 +384,9 @@ export default function PostDetailPage() {
         document.body.style.overflow = "";
     };
     const prevLight = () =>
-        setLightboxIdx((i) => (i - 1 + imageAttachments.length) % imageAttachments.length);
+        setLightboxIdx(
+            (i) => (i - 1 + imageAttachments.length) % imageAttachments.length
+        );
     const nextLight = () =>
         setLightboxIdx((i) => (i + 1) % imageAttachments.length);
 
@@ -432,8 +449,7 @@ export default function PostDetailPage() {
             setTimeout(() => alert("수정되었습니다."), 0);
         } catch (e) {
             const status = e?.response?.status;
-            if (status === 401 || status === 403)
-                alert("로그인이 필요합니다.");
+            if (status === 401 || status === 403) alert("로그인이 필요합니다.");
             else alert(e?.response?.data?.message || "수정에 실패했습니다.");
             console.error(e);
         }
@@ -479,18 +495,19 @@ export default function PostDetailPage() {
                                 {/* 본문 */}
                                 <div className="post-content">{post.content}</div>
 
-                                {/* ===== 첨부 블록 + 캐러셀 ===== */}
-                                {Array.isArray(post.attachments) &&
-                                    post.attachments.length > 0 && (
-                                        <div className="attachments-block">
-                                            <div className="attachments-head">
-                                                <strong>첨부 사진</strong>
-                                                <span className="attachments-count">
-                          ({imageAttachments.length})
-                        </span>
-                                            </div>
-                                            <div className="attachments-divider" />
+                                {/* ===== 첨부 블록 (이미지 캐러셀 + 일반 파일 리스트) ===== */}
+                                {(imageAttachments.length > 0 || fileAttachments.length > 0) && (
+                                    <div className="attachments-block">
+                                        <div className="attachments-head">
+                                            <strong>첨부 파일</strong>
+                                            <span className="attachments-count">
+                        ({attachments.length})
+                      </span>
+                                        </div>
+                                        <div className="attachments-divider" />
 
+                                        {/* 1) 이미지 캐러셀 */}
+                                        {imageAttachments.length > 0 && (
                                             <div
                                                 className="attachments-carousel"
                                                 onMouseEnter={syncArrows}
@@ -510,35 +527,13 @@ export default function PostDetailPage() {
                                                     ref={viewportRef}
                                                     onScroll={syncArrows}
                                                 >
-                                                    {post.attachments.map((img) => {
+                                                    {imageAttachments.map((img) => {
                                                         const label = img.filename || "attachment";
-                                                        const srcOrName = img.url || img.filename || "";
-                                                        const isImage =
-                                                            /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(
-                                                                srcOrName
-                                                            );
-                                                        if (!isImage) {
-                                                            return (
-                                                                <div
-                                                                    className="carousel-slide"
-                                                                    key={img.id ?? img.url ?? label}
-                                                                >
-                                                                    <a
-                                                                        href={img.url}
-                                                                        target="_blank"
-                                                                        rel="noreferrer"
-                                                                    >
-                                                                        {label || "파일 다운로드"}
-                                                                    </a>
-                                                                </div>
-                                                            );
-                                                        }
                                                         const imageIndex = Math.max(
                                                             0,
                                                             imageAttachments.findIndex(
                                                                 (a) =>
-                                                                    (a?.id ?? a?.url) ===
-                                                                    (img?.id ?? img?.url)
+                                                                    (a?.id ?? a?.url) === (img?.id ?? img?.url)
                                                             )
                                                         );
                                                         return (
@@ -554,8 +549,7 @@ export default function PostDetailPage() {
                                                                     style={{ cursor: "zoom-in" }}
                                                                     onError={(e) => {
                                                                         e.currentTarget.style.display = "none";
-                                                                        const link =
-                                                                            document.createElement("a");
+                                                                        const link = document.createElement("a");
                                                                         link.href = img.url;
                                                                         link.textContent =
                                                                             label || "파일 다운로드";
@@ -580,8 +574,26 @@ export default function PostDetailPage() {
                                                     ›
                                                 </button>
                                             </div>
-                                        </div>
-                                    )}
+                                        )}
+
+                                        {/* 2) 일반 파일 리스트 (pdf, hwp 등) */}
+                                        {fileAttachments.length > 0 && (
+                                            <ul className="attachments-file-list">
+                                                {fileAttachments.map((f) => {
+                                                    const label = f.filename || f.url || "파일 다운로드";
+                                                    const href = f.url || f.downloadUrl || "#";
+                                                    return (
+                                                        <li key={f.id ?? f.url ?? label}>
+                                                            <a href={href} target="_blank" rel="noreferrer">
+                                                                📎 {label}
+                                                            </a>
+                                                        </li>
+                                                    );
+                                                })}
+                                            </ul>
+                                        )}
+                                    </div>
+                                )}
 
                                 {/* ===== 레시피 미리보기 (카드 → 모달 열기) ===== */}
                                 {attachedRecipe && (
@@ -648,11 +660,7 @@ export default function PostDetailPage() {
                                     disabled={liking}
                                     title={liked ? "좋아요 취소" : "좋아요"}
                                 >
-                                    {liked ? (
-                                        <HeartFilled size={24} />
-                                    ) : (
-                                        <HeartOutline size={24} />
-                                    )}
+                                    {liked ? <HeartFilled size={24} /> : <HeartOutline size={24} />}
                                 </button>
                                 <span>{likes}</span>
                                 {Number.isFinite(views) && (
@@ -675,20 +683,14 @@ export default function PostDetailPage() {
                                                 type="button"
                                                 className="post-action-link danger"
                                                 onClick={() => {
-                                                    if (
-                                                        !window.confirm(
-                                                            "게시글을 삭제하시겠습니까?"
-                                                        )
-                                                    )
-                                                        return;
+                                                    if (!window.confirm("게시글을 삭제하시겠습니까?")) return;
                                                     deletePost(board, postId)
                                                         .then(() => {
                                                             alert("삭제되었습니다.");
                                                             navigate(`/community/${board}`);
                                                         })
                                                         .catch((e) => {
-                                                            const status =
-                                                                e?.response?.status;
+                                                            const status = e?.response?.status;
                                                             if (status === 401 || status === 403)
                                                                 alert("로그인이 필요합니다.");
                                                             else
@@ -808,9 +810,7 @@ export default function PostDetailPage() {
                                     <span className="comment-author">{comment.author}</span>
 
                                     {!comment.isEditing ? (
-                                        <span className="comment-content">
-                      {comment.content}
-                    </span>
+                                        <span className="comment-content">{comment.content}</span>
                                     ) : (
                                         <input
                                             className="comment-edit-input"
@@ -827,8 +827,7 @@ export default function PostDetailPage() {
                                             }
                                             onKeyDown={(e) => {
                                                 if (e.key === "Enter") {
-                                                    const content =
-                                                        (comment.editValue || "").trim();
+                                                    const content = (comment.editValue || "").trim();
                                                     if (!content) return;
                                                     updateComment(board, postId, comment.id, {
                                                         content,
@@ -837,18 +836,12 @@ export default function PostDetailPage() {
                                                             setComments((prev) =>
                                                                 prev.map((c) =>
                                                                     c.id === comment.id
-                                                                        ? {
-                                                                            ...c,
-                                                                            content,
-                                                                            isEditing: false,
-                                                                        }
+                                                                        ? { ...c, content, isEditing: false }
                                                                         : c
                                                                 )
                                                             )
                                                         )
-                                                        .catch(() =>
-                                                            alert("댓글 수정에 실패했습니다.")
-                                                        );
+                                                        .catch(() => alert("댓글 수정에 실패했습니다."));
                                                 }
                                             }}
                                         />
@@ -965,9 +958,7 @@ export default function PostDetailPage() {
                                                 className="recipe-modal-ingredient-card"
                                                 key={i}
                                             >
-                        <span className="ingredient-name">
-                          {ing.name}
-                        </span>
+                                                <span className="ingredient-name">{ing.name}</span>
                                                 {ing.amount && (
                                                     <span className="ingredient-amount">
                             {ing.amount}
@@ -989,9 +980,7 @@ export default function PostDetailPage() {
                                     </li>
                                 )}
                                 {recipeSteps.map((step, i) =>
-                                    !recipeShowAll && i >= 3 ? null : (
-                                        <li key={i}>{step}</li>
-                                    )
+                                    !recipeShowAll && i >= 3 ? null : <li key={i}>{step}</li>
                                 )}
                             </ol>
 
@@ -1040,9 +1029,7 @@ export default function PostDetailPage() {
                     >
                         <img
                             src={imageAttachments[lightboxIdx].url}
-                            alt={
-                                imageAttachments[lightboxIdx].filename || "image"
-                            }
+                            alt={imageAttachments[lightboxIdx].filename || "image"}
                         />
                         <figcaption className="lightbox-caption">
                             {imageAttachments[lightboxIdx].filename ||
