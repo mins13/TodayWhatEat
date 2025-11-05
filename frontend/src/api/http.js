@@ -3,7 +3,7 @@ import axios from "axios";
 
 export const http = axios.create({
     baseURL: import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8080",
-    withCredentials: true,            // ✅ refreshToken 쿠키 보내려면 true
+    withCredentials: true,
 });
 
 /** 요청 인터셉터: accessToken 헤더에 붙이기 */
