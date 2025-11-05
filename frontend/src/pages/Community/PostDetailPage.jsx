@@ -18,6 +18,26 @@ import {
     deletePost,
 } from "../../api/communityApi";
 
+const API_BASE =
+    import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8080";
+
+// ex) "https://xxx.railway.app/api"  -> "https://xxx.railway.app"
+const API_ORIGIN = (() => {
+    try {
+        return new URL(API_BASE).origin;
+    } catch {
+        // 혹시 URL 파싱 안 되면 /api 뒷부분만 잘라내기
+        return API_BASE.replace(/\/api\/?$/, "");
+    }
+})();
+
+// 상대 경로("/files/...") -> 절대 경로("https://...railway.app/files/...")
+function resolveUrl(url) {
+    if (!url) return url;
+    if (/^https?:\/\//i.test(url)) return url; // 이미 절대 URL이면 그대로
+    return `${API_ORIGIN}${url}`;
+}
+
 const BOARD_LABEL_MAP = {
     free: "자유 게시판",
     recipe: "레시피 게시판",
@@ -76,8 +96,9 @@ export default function PostDetailPage() {
     const [recipeModalOpen, setRecipeModalOpen] = useState(false);
     const [recipeShowAll, setRecipeShowAll] = useState(false);
 
-    const recipeImage =
-        attachedRecipe?.mainImageUrl || attachedRecipe?.imageUrl || IMG_PLACEHOLDER;
+    const recipeImage = resolveUrl(
+        attachedRecipe?.mainImageUrl || attachedRecipe?.imageUrl
+    ) || IMG_PLACEHOLDER;
 
     const recipeIngredients = useMemo(() => {
         if (!attachedRecipe || !Array.isArray(attachedRecipe.ingredients)) return [];
@@ -344,32 +365,51 @@ export default function PostDetailPage() {
     };
 
     /* ========= 첨부/라이트박스 ========= */
-    const attachments = post?.attachments ?? [];
+    const rawAttachments = post?.attachments ?? [];
+
+    const attachments = useMemo(
+        () =>
+            Array.isArray(rawAttachments)
+                ? rawAttachments.map((a) => {
+                    const filename =
+                        a.filename ||
+                        a.originalFilename ||
+                        a.fileName ||
+                        a.name ||
+                        "";
+
+                    // 서버가 준 url 필드 또는 fileUrl 등
+                    let url = a.url || a.fileUrl || a.downloadUrl || "";
+                    url = resolveUrl(url); // 🔥 여기서 백엔드 도메인 붙여줌
+
+                    return { ...a, filename, url };
+                })
+                : [],
+        [rawAttachments]
+    );
+
 
     // 이미지 첨부만 필터
     const imageAttachments = useMemo(
         () =>
-            Array.isArray(attachments)
-                ? attachments.filter((a) =>
-                    /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(
-                        a?.url || a?.filename || ""
-                    )
+            attachments.filter((a) =>
+                /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(
+                    a.filename || a.url || ""
                 )
-                : [],
+            ),
         [attachments]
     );
 
-    // 이미지가 아닌 첨부(pdf, hwp 등)
+// 이미지가 아닌 첨부
     const fileAttachments = useMemo(
         () =>
-            Array.isArray(attachments)
-                ? attachments.filter((a) => {
-                    const src = a?.url || a?.filename || "";
-                    return !/\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(src);
-                })
-                : [],
+            attachments.filter((a) => {
+                const src = a.filename || a.url || "";
+                return !/\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(src);
+            }),
         [attachments]
     );
+
 
     const [lightboxOpen, setLightboxOpen] = useState(false);
     const [lightboxIdx, setLightboxIdx] = useState(0);
