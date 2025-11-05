@@ -53,13 +53,15 @@ public class UserController {
         String refreshToken = jwtUtil.createRefreshToken(user.getUsername());
 
         // 3) refresh 토큰을 HttpOnly 쿠키로 내려주기
+        // 로그인 메서드 내부
         ResponseCookie refreshCookie = ResponseCookie.from("refreshToken", refreshToken)
                 .httpOnly(true)
-                .secure(true)           // 🔸 배포가 HTTPS일 때 true 유지. 로컬에서 막히면 false로 테스트.
-                .sameSite("Lax")
-                .path("/api")           // 백엔드 API 경로 기준
-                .maxAge(60L * 60 * 24 * 7) // 7일 (초 단위)
+                .secure(true)           // 배포는 HTTPS니까 true 유지
+                .sameSite("None")       // ★ cross-site 요청에서도 쿠키 전송
+                .path("/api")
+                .maxAge(60L * 60 * 24 * 7)
                 .build();
+        ;
 
         response.addHeader(HttpHeaders.SET_COOKIE, refreshCookie.toString());
 
@@ -108,9 +110,9 @@ public class UserController {
         ResponseCookie deleteCookie = ResponseCookie.from("refreshToken", "")
                 .httpOnly(true)
                 .secure(true)
-                .sameSite("Lax")
+                .sameSite("None")
                 .path("/api")
-                .maxAge(0)      // 즉시 만료
+                .maxAge(0)
                 .build();
 
         response.addHeader(HttpHeaders.SET_COOKIE, deleteCookie.toString());
