@@ -42,7 +42,7 @@ function Calendar() {
     // ✅ 여기서 이제 axios 말고 http 사용
     const fetchIngredients = useCallback(async () => {
         try {
-            const res = await http.get("/api/fridge/list");
+            const res = await http.get("/fridge/list");
             const initialMap = getInitialCountMap();
             const lastCounts = lastCountRef.current;
 
@@ -132,7 +132,7 @@ function Calendar() {
     // ✅ 삭제도 http 사용, Authorization 헤더는 인터셉터가 자동 세팅
     const handleDelete = async (target) => {
         try {
-            await http.delete("/api/fridge/delete", {
+            await http.delete("/fridge/delete", {
                 data: {
                     ingredientName: target.title,
                     expirationDate: target.expireDate,
@@ -219,7 +219,7 @@ function Calendar() {
                 status: nextQty > 0 ? "ACTIVE" : "USED",
             };
 
-            await http.post("/api/fridge/save", payload);
+            await http.post("/fridge/save", payload);
             await fetchIngredients();
 
             alert("재료가 저장되었습니다!");
