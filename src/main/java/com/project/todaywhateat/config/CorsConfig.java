@@ -18,16 +18,25 @@ public class CorsConfig {
         CorsConfiguration cfg = new CorsConfiguration();
         cfg.setAllowedOriginPatterns(List.of("http://localhost:5173"));
         cfg.setAllowedMethods(List.of("GET","POST","PUT","PATCH","DELETE","OPTIONS"));
-        cfg.setAllowedHeaders(List.of("*"));  // Authorization 포함
-        cfg.setAllowCredentials(false);       // 쿠키 안 쓰면 false 유지
+        cfg.setAllowedHeaders(List.of("*"));
+
+        // ❌ 지금은 false
+        // cfg.setAllowCredentials(false);
+
+        // ✅ 쿠키(refreshToken) 쓰고, axios.withCredentials=true 이면 무조건 true 여야 함
+        cfg.setAllowCredentials(true);
+
+        // (선택) 브라우저에서 읽을 수 있는 헤더
+        // cfg.setExposedHeaders(List.of("Authorization", "Set-Cookie"));
+
         cfg.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", cfg);
 
         FilterRegistrationBean<CorsFilter> bean =
-                new FilterRegistrationBean<>(new CorsFilter(source)); // ✅ 스프링 CorsFilter
-        bean.setOrder(Ordered.HIGHEST_PRECEDENCE); // 최우선
+                new FilterRegistrationBean<>(new CorsFilter(source));
+        bean.setOrder(Ordered.HIGHEST_PRECEDENCE);
         return bean;
     }
 }

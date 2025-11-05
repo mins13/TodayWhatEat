@@ -7,6 +7,7 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.stereotype.Component;
 
+import java.nio.charset.StandardCharsets;
 import java.security.Key;
 import java.time.Duration;
 import java.util.Date;
@@ -15,32 +16,48 @@ import java.util.Date;
 public class JwtUtil {
 
     // 32바이트 이상 (운영에선 환경변수/설정에서 주입 권장)
-    private final Key key = Keys.hmacShaKeyFor("오늘뭐먹지오늘뭐먹지오늘뭐먹지오늘뭐먹지".getBytes());
-    private final long expirationMs = 1000L * 60 * 60; // 1h
+    private final Key key =
+            Keys.hmacShaKeyFor("오늘뭐먹지오늘뭐먹지오늘뭐먹지오늘뭐먹지".getBytes(StandardCharsets.UTF_8));
 
-    /* ---------- 생성 ---------- */
+    // === 만료 시간 ===
+    private static final long ACCESS_TOKEN_EXPIRE_MS  = 1000L * 60 * 15;        // 15분
+    private static final long REFRESH_TOKEN_EXPIRE_MS = 1000L * 60 * 60 * 24 * 7; // 7일
 
-    /** 기본 토큰: username + nickname */
-    public String createToken(String username, String nickname) {
-        return Jwts.builder()
+    private static final String CLAIM_TYPE = "type";
+    private static final String TYPE_ACCESS  = "ACCESS";
+    private static final String TYPE_REFRESH = "REFRESH";
+
+    /* ---------- 토큰 생성 공통 ---------- */
+
+    private String buildToken(String username, String nickname, Long userId,
+                              String type, long expireMs) {
+        Date now = new Date();
+        Date exp = new Date(now.getTime() + expireMs);
+
+        JwtBuilder builder = Jwts.builder()
                 .setSubject(username)
-                .claim("nickname", nickname)
-                .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + expirationMs))
-                .signWith(key, SignatureAlgorithm.HS256)
-                .compact();
+                .claim(CLAIM_TYPE, type)
+                .setIssuedAt(now)
+                .setExpiration(exp)
+                .signWith(key, SignatureAlgorithm.HS256);
+
+        if (nickname != null) {
+            builder.claim("nickname", nickname);
+        }
+        if (userId != null) {
+            builder.claim("id", userId);
+        }
+        return builder.compact();
     }
 
-    /** 필요 시 userId까지 담는 버전(선택) */
-    public String createToken(String username, String nickname, Long userId) {
-        return Jwts.builder()
-                .setSubject(username)
-                .claim("nickname", nickname)
-                .claim("id", userId) // 컨트롤러에서 바로 꺼내 쓸 수 있음
-                .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + expirationMs))
-                .signWith(key, SignatureAlgorithm.HS256)
-                .compact();
+    /** ACCESS 토큰 (username + nickname + userId) */
+    public String createAccessToken(String username, String nickname, Long userId) {
+        return buildToken(username, nickname, userId, TYPE_ACCESS, ACCESS_TOKEN_EXPIRE_MS);
+    }
+
+    /** REFRESH 토큰 (username만 있으면 충분) */
+    public String createRefreshToken(String username) {
+        return buildToken(username, null, null, TYPE_REFRESH, REFRESH_TOKEN_EXPIRE_MS);
     }
 
     /* ---------- 파싱 공통 ---------- */
@@ -54,23 +71,31 @@ public class JwtUtil {
                 .parseClaimsJws(token);
     }
 
+    private Claims getClaims(String token) {
+        return parse(token).getBody();
+    }
+
     /* ---------- 추출 ---------- */
 
     public String getUsername(String token) {
-        return parse(token).getBody().getSubject();
+        return getClaims(token).getSubject();
     }
 
     public String getNickname(String token) {
-        return parse(token).getBody().get("nickname", String.class);
+        return getClaims(token).get("nickname", String.class);
     }
 
     public Long getUserId(String token) {
-        Object v = parse(token).getBody().get("id");
+        Object v = getClaims(token).get("id");
         if (v instanceof Number n) return n.longValue();
         if (v instanceof String s) {
             try { return Long.parseLong(s); } catch (NumberFormatException ignore) {}
         }
         return null;
+    }
+
+    public String getTokenType(String token) {
+        return getClaims(token).get(CLAIM_TYPE, String.class);
     }
 
     /* ---------- 토큰 회수(헤더/쿠키 등) ---------- */
@@ -91,7 +116,7 @@ public class JwtUtil {
         String t = request.getHeader("Token");
         if (t != null && !t.isBlank()) return t.trim();
 
-        // 3) 쿠키 (accessToken / token / authorization 등)
+        // 3) 쿠키 (accessToken / token / authorization 등)  ← 여기에는 "ACCESS"만 넣을 계획
         if (request.getCookies() != null) {
             for (Cookie c : request.getCookies()) {
                 String name = c.getName();
@@ -113,12 +138,26 @@ public class JwtUtil {
 
     /* ---------- 검증 ---------- */
 
-    public boolean validateToken(String token) {
+    private boolean validate(String token, String expectedType) {
         try {
-            parse(token); // 예외 안 나면 유효
+            Claims claims = getClaims(token); // 여기서 만료/서명 체크 됨
+            String type = claims.get(CLAIM_TYPE, String.class);
+            if (expectedType != null && !expectedType.equals(type)) {
+                return false;
+            }
             return true;
         } catch (JwtException | IllegalArgumentException e) {
             return false;
         }
+    }
+
+    /** ACCESS 토큰용 검증 */
+    public boolean validateAccessToken(String token) {
+        return validate(token, TYPE_ACCESS);
+    }
+
+    /** REFRESH 토큰용 검증 */
+    public boolean validateRefreshToken(String token) {
+        return validate(token, TYPE_REFRESH);
     }
 }

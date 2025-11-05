@@ -17,22 +17,46 @@ function Login({ setIsLoggedIn }) {
         e.preventDefault();
 
         try {
-            const response = await loginUser(form);
+            const res = await loginUser(form);
+            // loginUser 가 반환하는 body
+            // { accessToken, nickname, username, role, userId(=PK) }
 
-            localStorage.setItem("token", response.token);
-            localStorage.setItem("nickname", response.nickname);
-            localStorage.setItem("userId", response.username);
-            console.log("✅ 유저아이디:", response.username); // 이게 null로 뜨는지 확인
-            localStorage.setItem("userId", response.username);
-            localStorage.setItem("accessToken", response.accessToken);
-            localStorage.setItem("role", response.role);
+            const accessToken = res.accessToken;
+            const nickname    = res.nickname;
+            const username    = res.username;
+            const role        = res.role;
+
+            // ===============================
+            // ① 예전 코드 호환용 (localStorage)
+            // ===============================
+            // 옛날에는 token 이라는 이름을 많이 썼으니까 그대로 맞춰 줘
+            localStorage.setItem("token", accessToken);
+            localStorage.setItem("accessToken", accessToken);
+
+            // header, 캘린더 등에서 쓰는 값들
+            localStorage.setItem("nickname", nickname);
+            localStorage.setItem("username", username);
+            localStorage.setItem("userId", username);   // ❗ 기존 요구사항 유지: userId = username
+            localStorage.setItem("role", role);
+
+            // ===============================
+            // ② 새 로직용 (sessionStorage)
+            // ===============================
+            sessionStorage.setItem("accessToken", accessToken);
+            sessionStorage.setItem("isLoggedIn", "true");
+            sessionStorage.setItem("nickname", nickname);
+            sessionStorage.setItem("username", username);
+            sessionStorage.setItem("userId", username); // 여기서도 동일하게
+            sessionStorage.setItem("role", role);
+
             setIsLoggedIn(true);
             navigate("/");
         } catch (error) {
             console.error("로그인 실패:", error);
-            setError("아이디 또는 비밀번호가 틀렸습니다."); // 🔴 에러 표시
+            setError("아이디 또는 비밀번호가 틀렸습니다.");
         }
     };
+
 
     const handleSignup = () => {
         navigate("/signup");

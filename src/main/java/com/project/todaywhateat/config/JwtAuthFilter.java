@@ -48,7 +48,8 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         }
 
         try {
-            if (!jwtUtil.validateToken(token)) {
+            // 🔹 ACCESS 토큰만 통과
+            if (!jwtUtil.validateAccessToken(token)) {
                 chain.doFilter(request, response);
                 return;
             }

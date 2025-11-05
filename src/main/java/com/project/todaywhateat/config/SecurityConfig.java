@@ -82,13 +82,26 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOriginPatterns(List.of("http://localhost:5173"));
-        config.setAllowedMethods(List.of("GET","POST","PUT","PATCH","DELETE","OPTIONS"));
-        config.setAllowedHeaders(List.of("*"));   // Authorization 포함
-        config.setAllowCredentials(false);        // 토큰은 헤더로 보내므로 false면 충분
+
+        // ① 허용 origin
+        config.setAllowedOrigins(List.of("http://localhost:5173"));
+        // (또는 setAllowedOriginPatterns 한 가지만 사용)
+
+        // ② 메서드/헤더
+        config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+        config.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Requested-With", "Accept", "Origin"));
+
+        // ③ 크리덴셜 허용 🔥 (이게 지금 안 먹고 있는 상태)
+        config.setAllowCredentials(true);
+
+        // ④ (선택) 브라우저에서 읽을 수 있는 헤더
+        config.setExposedHeaders(List.of("Authorization", "Set-Cookie"));
+
         config.setMaxAge(3600L);
+
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
         return source;
     }
+
 }
