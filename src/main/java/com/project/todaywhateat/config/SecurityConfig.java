@@ -83,15 +83,23 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
 
-        // ① 허용 origin
-        config.setAllowedOrigins(List.of("http://localhost:5173"));
-        // (또는 setAllowedOriginPatterns 한 가지만 사용)
+        // ① 허용 origin (로컬 + vercel 둘 다)
+        config.setAllowedOrigins(List.of(
+                "http://localhost:5173",
+                "https://today-what-eat.vercel.app"
+        ));
 
         // ② 메서드/헤더
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-        config.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Requested-With", "Accept", "Origin"));
+        config.setAllowedHeaders(List.of(
+                "Authorization",
+                "Content-Type",
+                "X-Requested-With",
+                "Accept",
+                "Origin"
+        ));
 
-        // ③ 크리덴셜 허용 🔥 (이게 지금 안 먹고 있는 상태)
+        // ③ 쿠키/인증정보 허용
         config.setAllowCredentials(true);
 
         // ④ (선택) 브라우저에서 읽을 수 있는 헤더
@@ -103,5 +111,6 @@ public class SecurityConfig {
         source.registerCorsConfiguration("/**", config);
         return source;
     }
+
 
 }

@@ -13,14 +13,9 @@ public class WebConfig implements WebMvcConfigurer {
 
     @Override
     public void addCorsMappings(CorsRegistry registry) {
-        registry.addMapping("/**")
-                .allowedOrigins(
-                        "http://localhost:5173",
-                        "https://today-what-eat.vercel.app"
-                )
-                .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
-                .allowCredentials(true)
-                .maxAge(3600);
+        /*registry.addMapping("/api/**")
+                .allowedOrigins("http://localhost:5173")
+                .allowedMethods("GET", "POST", "DELETE", "PUT");*/
     }
 
     @Override
