@@ -4,7 +4,14 @@ import { useParams, useNavigate } from "react-router-dom";
 import RecipeSidebar from "../../components/Recipe/RecipeSidebar";
 import ConfirmModal from "../../components/Recipe/ConfirmModal";
 import "./RecipeDetailPage.css";
-import { addView, fetchLikeStatus, toggleLike } from "../../api/recipeEngageApi";
+import {
+        addView,
+        fetchLikeStatus,
+        toggleLike,
+        fetchRecipeDetail,
+        fetchRecipeRecommendations,
+    } from "../../api/recipeEngageApi";
+ import { authHttp as http } from "../../api/http"; // 냉장고 API에 사용
 import { createMyRecipe } from "../../api/myRecipeApi";
 
 const IMG_PLACEHOLDER =
@@ -73,52 +80,44 @@ export default function RecipeDetailPage() {
     }, [recipeId]);
 
     // ---------- 2) 백그라운드 재검증 ----------
-    useEffect(() => {
-        if (!recipeId) return;
-        const ac = new AbortController();
-
-        (async () => {
-            try {
-                // 상세/추천 병렬
-                const [recipeRes, recRes] = await Promise.allSettled([
-                    fetch(`http://localhost:8080/api/recipes/${recipeId}`, { signal: ac.signal }),
-                    fetch(`http://localhost:8080/api/recipes/${recipeId}/recommendations?limit=3`, { signal: ac.signal }),
-                ]);
-
-                // 상세 성공 시 반영 + 캐시 저장
-                if (recipeRes.status === "fulfilled" && recipeRes.value.ok) {
-                    const data = await recipeRes.value.json();
-                    setRecipe(data);
-                    setViews(Number(data?.viewCount ?? 0));
-                    setLikes(Number(data?.likesCount ?? 0));
-
-                    const url = data?.image || data?.imageUrl || data?.thumbnail || null;
-                    setImgSrc(url || IMG_PLACEHOLDER);
-                    setIngredients(
-                        (data.ingredients || []).map((i) => ({
-                            name: i?.name ?? "",
-                            amount: i?.amount ?? "",
-                        }))
-                    );
-                    setSeasonings([]);
-
-                    sessionStorage.setItem(keyDetail(recipeId), JSON.stringify({ ts: Date.now(), data }));
-                }
-
-                // 추천 성공 시 반영 + 캐시 저장(실패해도 상세엔 영향 X)
-                if (recRes.status === "fulfilled" && recRes.value.ok) {
-                    const recData = await recRes.value.json();
-                    const list = Array.isArray(recData) ? recData : [];
-                    setRecommended(list);
-                    sessionStorage.setItem(keyRec(recipeId), JSON.stringify({ ts: Date.now(), data: list }));
-                }
-            } catch (e) {
-                if (e?.name !== "AbortError") console.error(e);
-            }
-        })();
-
-        return () => ac.abort();
-    }, [recipeId]);
+        useEffect(() => {
+              if (!recipeId) return;
+               (async () => {
+                    try {
+                          const [detail, recs] = await Promise.all([
+                                fetchRecipeDetail(recipeId),
+                                fetchRecipeRecommendations(recipeId, 3),
+                              ]);
+                              if (detail) {
+                               setRecipe(detail);
+                                setViews(Number(detail?.viewCount ?? 0));
+                                setLikes(Number(detail?.likesCount ?? 0));
+                                const url = detail?.image || detail?.imageUrl || detail?.thumbnail || null;
+                                setImgSrc(url || IMG_PLACEHOLDER);
+                                setIngredients(
+                                      (detail.ingredients || []).map((i) => ({
+                                            name: i?.name ?? "",
+                                            amount: i?.amount ?? "",
+                                      }))
+                                );
+                                setSeasonings([]);
+                                sessionStorage.setItem(
+                                      keyDetail(recipeId),
+                                      JSON.stringify({ ts: Date.now(), data: detail })
+                                    );
+                              }
+                              if (Array.isArray(recs)) {
+                                setRecommended(recs);
+                                sessionStorage.setItem(
+                                      keyRec(recipeId),
+                                      JSON.stringify({ ts: Date.now(), data: recs })
+                                    );
+                              }
+                        } catch (e) {
+                          console.error(e);
+                        }
+                  })();
+            }, [recipeId]);
 
     // ---------- 3) 비-크리티컬 요청 지연(초기 페인트 후) ----------
     useEffect(() => {
@@ -190,12 +189,8 @@ export default function RecipeDetailPage() {
     };
 
     async function hasIngredientInfo(name) {
-        const token = localStorage.getItem("token");
-        const res = await fetch("http://localhost:8080/fridge/list", {
-            headers: { Authorization: `Bearer ${token}` },
-        });
-        if (!res.ok) return { exists: false, total: 0 };
-        const list = await res.json();
+          // 인터셉터가 Authorization/쿠키 자동 처리
+              const { data: list } = await http.get("/fridge/list");
         const target = normName(name);
         const same = (Array.isArray(list) ? list : []).filter(
             (it) => normName(it?.ingredientName) === target
@@ -208,18 +203,9 @@ export default function RecipeDetailPage() {
     }
 
     async function consumeItems(items) {
-        const token = localStorage.getItem("token");
-        const res = await fetch("http://localhost:8080/fridge/consume", {
-            method: "PATCH",
-            headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify({ items }),
-        });
-        if (!res.ok) throw new Error("재고 차감 실패");
-        return await res.json();
-    }
+          const { data } = await http.patch("/fridge/consume", { items });
+          return data;
+        }
 
     const [pendingDefault, setPendingDefault] = useState({ amount: 1, unit: "개" });
 
