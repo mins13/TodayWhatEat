@@ -1,6 +1,8 @@
+// src/pages/recipe/MyRecipeApprovalList.jsx
 import React, { useEffect, useState } from "react";
 import { fetchMySubmittedDrafts, cancelMySubmission } from "../../api/draftApi";
 import RecipeSidebar from "../../components/Recipe/RecipeSidebar";
+import useRequireAuth from "../../hooks/useRequireAuth";   // ✅ 추가
 import "./MyRecipeApprovalList.css";
 
 const PAGE_SIZE = 5;         // 한 페이지 5개
@@ -13,7 +15,15 @@ function ellipsize(str, limit = TITLE_LIMIT) {
     return cps.length > limit ? cps.slice(0, limit).join("") + "…" : str;
 }
 
-export default function MyRecipeApprovalList() {
+/** ✅ 바깥 래퍼: 로그인 확인 후에만 내부 렌더 */
+export default function MyRecipeApprovalListPage() {
+    const ready = useRequireAuth({ alert: true }); // 토큰 없으면 /login 으로 보냄
+    if (!ready) return null;                       // redirect 동안 화면 비우기
+    return <MyRecipeApprovalListInner />;
+}
+
+/** 실제 화면 컴포넌트 */
+function MyRecipeApprovalListInner() {
     const [data, setData] = useState(null);
     const [page, setPage] = useState(0);
     const [loading, setLoading] = useState(false);
@@ -32,7 +42,9 @@ export default function MyRecipeApprovalList() {
         }
     };
 
-    useEffect(() => { load(0); }, []);
+    useEffect(() => {
+        load(0);
+    }, []);
 
     const safe = data ?? {
         content: [],
@@ -84,7 +96,9 @@ export default function MyRecipeApprovalList() {
                             {loading &&
                                 Array.from({ length: PAGE_SIZE }).map((_, i) => (
                                     <tr className="skeleton-row" key={`sk-${i}`}>
-                                        <td colSpan={6}><div className="skeleton-line" /></td>
+                                        <td colSpan={6}>
+                                            <div className="skeleton-line" />
+                                        </td>
                                     </tr>
                                 ))}
 
@@ -97,18 +111,33 @@ export default function MyRecipeApprovalList() {
                                             {ellipsize(d.title, TITLE_LIMIT)}
                                         </td>
                                         <td>
-                                            {d.status === "PENDING" && <span className="badge-soft">PENDING</span>}
-                                            {d.status === "APPROVED" && (
-                                                <span className="badge" style={{ background: "#e8fff1", color: "#16a34a" }}>
-                            APPROVED
-                          </span>
+                                            {d.status === "PENDING" && (
+                                                <span className="badge-soft">PENDING</span>
                                             )}
-                                            {d.status === "REJECTED" && <span className="badge-red">REJECTED</span>}
+                                            {d.status === "APPROVED" && (
+                                                <span
+                                                    className="badge"
+                                                    style={{
+                                                        background: "#e8fff1",
+                                                        color: "#16a34a",
+                                                    }}
+                                                >
+                                                    APPROVED
+                                                </span>
+                                            )}
+                                            {d.status === "REJECTED" && (
+                                                <span className="badge-red">REJECTED</span>
+                                            )}
                                         </td>
-                                        <td className="title-clip" title={d.rejectionReason || "-"}>
+                                        <td
+                                            className="title-clip"
+                                            title={d.rejectionReason || "-"}
+                                        >
                                             {d.rejectionReason || "-"}
                                         </td>
-                                        <td>{(d.updatedAt || "").replace("T", " ").slice(0, 16)}</td>
+                                        <td>
+                                            {(d.updatedAt || "").replace("T", " ").slice(0, 16)}
+                                        </td>
                                         <td>
                                             {d.status === "PENDING" ? (
                                                 <button
@@ -126,30 +155,49 @@ export default function MyRecipeApprovalList() {
                                     </tr>
                                 ))}
 
-                            {!loading && fillerCount > 0 &&
+                            {!loading &&
+                                fillerCount > 0 &&
                                 Array.from({ length: fillerCount }).map((_, i) => (
-                                    <tr key={`filler-${i}`}><td colSpan={6}>&nbsp;</td></tr>
+                                    <tr key={`filler-${i}`}>
+                                        <td colSpan={6}>&nbsp;</td>
+                                    </tr>
                                 ))}
 
                             {!loading && safe.content.length === 0 && (
                                 <tr>
-                                    <td colSpan={6} className="empty">승인 신청 기록이 없습니다.</td>
+                                    <td colSpan={6} className="empty">
+                                        승인 신청 기록이 없습니다.
+                                    </td>
                                 </tr>
                             )}
                             </tbody>
                         </table>
 
                         <div className="pager" style={{ marginTop: 12 }}>
-                            <button onClick={() => load(Math.max(0, page - 1))} disabled={loading || safe.first}>〈</button>
-                            <strong className="page-num">{(safe.number ?? 0) + 1}</strong>
                             <button
-                                onClick={() => load(Math.min((safe.totalPages ?? 1) - 1, page + 1))}
+                                onClick={() => load(Math.max(0, page - 1))}
+                                disabled={loading || safe.first}
+                            >
+                                〈
+                            </button>
+                            <strong className="page-num">
+                                {(safe.number ?? 0) + 1}
+                            </strong>
+                            <button
+                                onClick={() =>
+                                    load(Math.min((safe.totalPages ?? 1) - 1, page + 1))
+                                }
                                 disabled={loading || safe.last}
                             >
                                 〉
                             </button>
 
-                            <button className="btn-refresh" onClick={() => load(page)} disabled={loading} style={{ marginLeft: 8 }}>
+                            <button
+                                className="btn-refresh"
+                                onClick={() => load(page)}
+                                disabled={loading}
+                                style={{ marginLeft: 8 }}
+                            >
                                 {loading ? "로딩중…" : "새로고침"}
                             </button>
                         </div>
