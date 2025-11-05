@@ -15,6 +15,9 @@ export const authHttp = axios.create({
     withCredentials: true,    // ✅ refreshToken 쿠키 보내려면 true
 });
 
+/** 👉 옛 코드 호환용: http = authHttp */
+export const http = authHttp;
+
 /** --- authHttp 에만 인터셉터 달기 --- */
 
 // 요청 인터셉터: accessToken 헤더에 붙이기

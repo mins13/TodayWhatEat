@@ -1,5 +1,5 @@
 // src/api/myRecipeApi.js
-import { http } from "./http";
+import { authHttp as http } from "./http";
 
 /** 나만의 레시피 목록 (초안 목록) */
 export async function fetchMyRecipes(page = 0, size = 10) {
@@ -31,13 +31,7 @@ export async function deleteMyRecipe(id) {
     return res.data;
 }
 
-/**
- * 승인 신청 (초안 ID 필수)
- * 서버 엔드포인트: POST /api/my-recipes/{id}/approval
- * 성공 시 최신 DraftRecipeRes( status=PENDING )가 반환되도록 백엔드와 맞춥니다.
- */
-
-
+/** 승인 신청 */
 export async function requestMyRecipeApproval(id) {
     const res = await http.post(`/api/my-recipes/${id}/approval`, {});
     return res.data ?? {};

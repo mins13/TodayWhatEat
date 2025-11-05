@@ -1,5 +1,5 @@
 // src/api/adminRecipeDraftApi.js
-import { http } from "./http";
+import { authHttp as http } from "./http";
 
 /**
  * @param {{page?:number, size?:number, signal?:AbortSignal}} opts
@@ -8,7 +8,7 @@ export async function fetchPendingDrafts(opts = {}) {
     const { page = 0, size = 20, signal } = opts;
     const res = await http.get("/api/admin/recipe-drafts/pending", {
         params: { page, size },
-        signal,                    // ✅ axios가 AbortSignal 인식
+        signal,
     });
     return res.data;
 }
@@ -19,7 +19,11 @@ export async function fetchDraftById(id, { signal } = {}) {
 }
 
 export async function approveDraft(id, { signal } = {}) {
-    const res = await http.post(`/api/admin/recipe-drafts/${id}/approve`, {}, { signal });
+    const res = await http.post(
+        `/api/admin/recipe-drafts/${id}/approve`,
+        {},
+        { signal }
+    );
     return res.data;
 }
 
