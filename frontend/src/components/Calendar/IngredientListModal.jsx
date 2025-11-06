@@ -1,9 +1,8 @@
-import React, {useState} from "react";
-import { useEffect } from "react";
-import axios from "axios";
+import React, { useState, useEffect } from "react";
+import { http } from "../../api/http"; // ← 경로 확인!
 import "./IngredientListModal.css";
 
-function IngredientListModal({date, items,version, onClose, onChange}) {
+function IngredientListModal({ date, items, version, onClose, onChange }) {
     const formatDate = (d) => {
         const obj = new Date(d);
         return `${obj.getFullYear()}년 ${obj.getMonth() + 1}월 ${obj.getDate()}일`;
@@ -17,47 +16,61 @@ function IngredientListModal({date, items,version, onClose, onChange}) {
         }))
     );
 
-    useEffect(() => {
-        setLocalItems((items || []).map((it) => ({
-                ...it,
-                lastUsedNow: 0,
-               // ✅ 수량이 생겼으면 USED 표시/클래스를 즉시 해제
-                    status: Number(it.count) > 0 ? "ACTIVE" : (it.status ?? "USED"),
-              })));
-          // UX: 입력 기본값 1로 재설정
-              setUsingAmount(prev => {
-                    const next = { ...prev };
-                    for (const it of (items || [])) next[it.id] = 1;
-                    return next;
-                  });
-    }, [items, version]);
-
-
     const [expanded, setExpanded] = useState({}); // 항목별 펼침 여부
     const [usingAmount, setUsingAmount] = useState({}); // 항목별 입력 수량
     const [loadingId, setLoadingId] = useState(null); // 버튼 중복 클릭 방지
 
+    // items / version 바뀌면 로컬 상태 초기화
+    useEffect(() => {
+        setLocalItems(
+            (items || []).map((it) => ({
+                ...it,
+                lastUsedNow: 0,
+                // 수량이 있으면 USED 표시/클래스를 즉시 해제
+                status: Number(it.count) > 0 ? "ACTIVE" : it.status ?? "USED",
+            }))
+        );
+
+        // UX: 입력 기본값 1로 재설정
+        setUsingAmount((prev) => {
+            const next = { ...prev };
+            for (const it of items || []) next[it.id] = 1;
+            return next;
+        });
+    }, [items, version]);
+
     const toggleExpand = (idx) =>
-        setExpanded((prev) => ({...prev, [idx]: !prev[idx]}));
+        setExpanded((prev) => ({ ...prev, [idx]: !prev[idx] }));
 
     const token = localStorage.getItem("token");
-    const authHeader = token ? {Authorization: `Bearer ${token}`} : {};
+    const authHeader = token ? { Authorization: `Bearer ${token}` } : {};
 
-
-    // ===== API 호출 헬퍼 (모두 /api 프리픽스) =====
+    // ===== API 호출 헬퍼 =====
+    // /fridge/consume  ← ConsumeRequest { items: [ { id, amount } ] } 를 보낸다고 가정
     async function apiConsumeOne(id, amount) {
-           return axios.patch(
-                 "/api/fridge/consume-one",
-                 { id, amount: Number(amount) },
-                 { headers: authHeader}
-               );
-         }
-
-    async function apiMarkUsed(id) {
-        return axios.patch(`/api/fridge/mark-used/${id}`, null, {headers: authHeader});
+        const body = {
+            items: [{ id, amount: Number(amount) }],
+        };
+        return http.patch("/fridge/consume", body, { headers: authHeader });
     }
 
+    // /fridge/mark-used  ← body 로 { id } 전송
+    async function apiMarkUsed(id) {
+        return http.patch(
+            "/fridge/mark-used",
+            { id: String(id) },
+            { headers: authHeader }
+        );
+    }
 
+    // ⚠️ 백엔드에 아직 없으면 404 날 수 있음(사용취소 기능)
+    async function apiRestoreOne(id, amount) {
+        return http.patch(
+            "/fridge/restore-one",
+            { id, amount: Number(amount) },
+            { headers: authHeader }
+        );
+    }
 
     const afterSuccess = async () => {
         // 부모에게 갱신 신호 → 부모가 재조회(또는 부분 수정) 수행
@@ -71,7 +84,7 @@ function IngredientListModal({date, items,version, onClose, onChange}) {
         if (!Number.isFinite(amount) || amount <= 0) amount = 1;
 
         const now = Number(row.count ?? 0);
-        const safeAmount = Math.min(amount, now); // ✅ 현재 수량 초과 차감 방지
+        const safeAmount = Math.min(amount, now); // 현재 수량 초과 차감 방지
         if (safeAmount <= 0) {
             alert("사용할 수 있는 수량이 없습니다.");
             return;
@@ -80,15 +93,32 @@ function IngredientListModal({date, items,version, onClose, onChange}) {
         try {
             setLoadingId(row.id);
             const { data } = await apiConsumeOne(row.id, safeAmount);
-            const newQ = Number(data?.newQuantity ?? Math.max(0, now - safeAmount));
-            const newStatus = data?.status ?? (newQ > 0 ? "ACTIVE" : "USED");
-            const usedNow = Number.isFinite(data?.usedNow) ? data.usedNow : safeAmount;
 
-            setLocalItems(prev => prev.map((it, i) =>
-                i === idx ? { ...it, count: newQ, status: newStatus, lastUsedNow: usedNow } : it
-            ));
-            if (onChange) await onChange("consume", { id: row.id, newQuantity: newQ });
-            setUsingAmount(prev => ({ ...prev, [row.id]: "" }));
+            const newQ = Number(
+                data?.newQuantity ?? Math.max(0, now - safeAmount)
+            );
+            const newStatus = data?.status ?? (newQ > 0 ? "ACTIVE" : "USED");
+            const usedNow = Number.isFinite(data?.usedNow)
+                ? data.usedNow
+                : safeAmount;
+
+            setLocalItems((prev) =>
+                prev.map((it, i) =>
+                    i === idx
+                        ? {
+                            ...it,
+                            count: newQ,
+                            status: newStatus,
+                            lastUsedNow: usedNow,
+                        }
+                        : it
+                )
+            );
+
+            if (onChange)
+                await onChange("consume", { id: row.id, newQuantity: newQ });
+
+            setUsingAmount((prev) => ({ ...prev, [row.id]: "" }));
         } catch (e) {
             console.error("consume error:", e);
             alert(e?.response?.data?.message || e?.message || "사용 처리 실패");
@@ -97,11 +127,10 @@ function IngredientListModal({date, items,version, onClose, onChange}) {
         }
     };
 
-
-
     const handleMarkUsed = async (idx) => {
         const row = localItems[idx];
         if (!row?.id) return;
+
         try {
             setLoadingId(row.id);
 
@@ -119,11 +148,22 @@ function IngredientListModal({date, items,version, onClose, onChange}) {
             const newQ = Number(data?.newQuantity ?? 0);
             const newStatus = data?.status ?? (newQ > 0 ? "ACTIVE" : "USED");
 
-            setLocalItems(prev => prev.map((it, i) =>
-                i === idx ? { ...it, count: newQ, status: newStatus, usedAt: newStatus === "USED" ? new Date().toISOString() : null } : it
-            ));
+            setLocalItems((prev) =>
+                prev.map((it, i) =>
+                    i === idx
+                        ? {
+                            ...it,
+                            count: newQ,
+                            status: newStatus,
+                            usedAt:
+                                newStatus === "USED" ? new Date().toISOString() : null,
+                        }
+                        : it
+                )
+            );
 
-            if (onChange) await onChange("consume", { id: row.id, newQuantity: newQ });
+            if (onChange)
+                await onChange("consume", { id: row.id, newQuantity: newQ });
         } catch (e) {
             console.error(e);
             alert(e?.response?.data?.message || "사용완료 처리 실패");
@@ -138,9 +178,9 @@ function IngredientListModal({date, items,version, onClose, onChange}) {
         if (!Number.isFinite(amount) || amount <= 0) amount = 1;
         if (!row?.id) return;
 
-        // ⬇️ 처음 수량을 넘지 않도록 절대 상한 계산
+        // 처음 수량을 넘지 않도록 상한 계산
         const init = Number(row.initialCount ?? 0);
-        const now  = Number(row.count ?? 0);
+        const now = Number(row.count ?? 0);
         const maxAdd = Math.max(0, init - now);
         const safeAmount = Math.min(amount, maxAdd);
 
@@ -152,14 +192,24 @@ function IngredientListModal({date, items,version, onClose, onChange}) {
         try {
             setLoadingId(row.id);
             const { data } = await apiRestoreOne(row.id, safeAmount);
-            const newQ = Number(data?.newQuantity ?? (now + safeAmount));
+            const newQ = Number(data?.newQuantity ?? now + safeAmount);
 
-            setLocalItems(prev => prev.map((it, i) =>
-                i === idx ? { ...it, count: newQ, status: "ACTIVE", lastUsedNow: 0 } : it
-            ));
-            if (onChange) await onChange("restore", { id: row.id, newQuantity: newQ });
+            setLocalItems((prev) =>
+                prev.map((it, i) =>
+                    i === idx
+                        ? {
+                            ...it,
+                            count: newQ,
+                            status: "ACTIVE",
+                            lastUsedNow: 0,
+                        }
+                        : it
+                )
+            );
+            if (onChange)
+                await onChange("restore", { id: row.id, newQuantity: newQ });
 
-            setUsingAmount(prev => ({ ...prev, [row.id]: "" }));
+            setUsingAmount((prev) => ({ ...prev, [row.id]: "" }));
         } catch (e) {
             alert(e?.response?.data?.message || e?.message || "사용취소 실패");
         } finally {
@@ -167,26 +217,13 @@ function IngredientListModal({date, items,version, onClose, onChange}) {
         }
     };
 
-
-
-    // 파일 상단의 API 헬퍼들 아래쪽에 추가
-
-
-    async function apiRestoreOne(id, amount) {
-        return axios.patch(
-            "/api/fridge/restore-one",
-            { id, amount: Number(amount) },
-            { headers: authHeader }
-        );
-    }
-
-
-
     // ===== 렌더 =====
+    const todayStr = formatDate(date);
+
     return (
         <div className="modal-overlay">
             <div className="modal-content list-modal">
-                <h3>{formatDate(date)}의 재료 목록</h3>
+                <h3>{todayStr}의 재료 목록</h3>
 
                 {localItems.length > 0 ? (
                     <ul className="ingredient-list">
@@ -197,17 +234,16 @@ function IngredientListModal({date, items,version, onClose, onChange}) {
                             const memo = item.notes || item.memo || "없음";
                             const needToggleMemo = memo.length > 100;
                             const init = Number(item.initialCount ?? 0);
-                            const now  = Number(item.count ?? 0);
+                            const now = Number(item.count ?? 0);
                             const used = Math.max(0, init - now);
                             const maxAdd = Math.max(0, init - now);
-
 
                             return (
                                 <li
                                     key={item.id ?? idx}
-                                    className={`ingredient-item ${isExpanded ? "expanded" : ""} ${
-                                        isUsed ? "used" : ""
-                                    }`}
+                                    className={`ingredient-item ${
+                                        isExpanded ? "expanded" : ""
+                                    } ${isUsed ? "used" : ""}`}
                                 >
                                     <div className="ingredient-content">
                                         <div
@@ -217,20 +253,30 @@ function IngredientListModal({date, items,version, onClose, onChange}) {
                                                 textDecoration: isUsed ? "line-through" : "none",
                                             }}
                                         >
-                                            {item.title} - {item.count}{unit}
+                                            {item.title} - {item.count}
+                                            {unit}
                                         </div>
-                                        <div className="count-badges">
-                                            <span className="badge badge-initial">처음 {init}{unit}</span>
-                                            <span className="badge badge-now">지금 {now}{unit}</span>
-                                            <span className="badge badge-used">사용 {used}{unit}</span>
 
+                                        <div className="count-badges">
+                      <span className="badge badge-initial">
+                        처음 {init}
+                          {unit}
+                      </span>
+                                            <span className="badge badge-now">
+                        지금 {now}
+                                                {unit}
+                      </span>
+                                            <span className="badge badge-used">
+                        사용 {used}
+                                                {unit}
+                      </span>
                                         </div>
 
                                         <div className="ingredient-sub">
                                             <span>구분: {item.category}</span>
-                                            <br/>
+                                            <br />
                                             <span>유통기한: {item.expireDate}</span>
-                                            <br/>
+                                            <br />
                                             <span>
                         메모:{" "}
                                                 {needToggleMemo && !isExpanded
@@ -279,17 +325,27 @@ function IngredientListModal({date, items,version, onClose, onChange}) {
                                                 placeholder="사용/복구 수량"
                                                 onChange={(e) => {
                                                     const v = Number(e.target.value);
-                                                    // 입력은 자유롭게, 최소 1만 보장
-                                                    const clamped = Math.max(1, Number.isFinite(v) ? v : 1);
-                                                    setUsingAmount(prev => ({ ...prev, [item.id]: clamped }));
+                                                    const clamped = Math.max(
+                                                        1,
+                                                        Number.isFinite(v) ? v : 1
+                                                    );
+                                                    setUsingAmount((prev) => ({
+                                                        ...prev,
+                                                        [item.id]: clamped,
+                                                    }));
                                                 }}
                                                 disabled={loadingId === item.id}
                                             />
+
                                             <button
                                                 className="use-btn"
                                                 type="button"
                                                 onClick={() => handleConsume(idx)}
-                                                disabled={loadingId === item.id || isUsed || Number(item.count) <= 0}
+                                                disabled={
+                                                    loadingId === item.id ||
+                                                    isUsed ||
+                                                    Number(item.count) <= 0
+                                                }
                                             >
                                                 사용
                                             </button>
@@ -311,10 +367,12 @@ function IngredientListModal({date, items,version, onClose, onChange}) {
                                             >
                                                 사용취소
                                             </button>
-                                            <small style={{opacity:.7}}>
-                                                사용 최대: {now}{unit} · 복구 최대: {Math.max(0, init - now)}{unit}
-                                            </small>
 
+                                            <small style={{ opacity: 0.7 }}>
+                                                사용 최대: {now}
+                                                {unit} · 복구 최대: {maxAdd}
+                                                {unit}
+                                            </small>
                                         </div>
                                     </div>
                                 </li>
