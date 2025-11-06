@@ -227,7 +227,7 @@ function IngredientListModal({ date, items, version, onClose, onChange }) {
             setLoadingId(null);
         }
     };
-sssss
+
 
     // ===== 렌더 =====
     const todayStr = formatDate(date);
