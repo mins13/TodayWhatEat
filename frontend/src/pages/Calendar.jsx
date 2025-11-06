@@ -219,7 +219,7 @@ function Calendar() {
                 status: nextQty > 0 ? "ACTIVE" : "USED",
             };
 
-            await http.post("/fridge/list", payload);
+            await http.post("/fridge", payload);
             await fetchIngredients();
 
             alert("재료가 저장되었습니다!");
