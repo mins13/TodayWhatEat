@@ -158,6 +158,8 @@
 .recipe-detail-back-btn:hover {
     background-color: #f0f0f0;
 }
+
+/* ===== 공통 모달 ===== */
 .recipe-detail-modal-overlay {
     position: fixed;
     top: 0;
@@ -198,6 +200,7 @@
 .recipe-detail-modal-buttons button:hover {
     background-color: #eee;
 }
+
 /* ✅ 재료 그리드 제목 */
 .recipe-detail-grid-title {
     font-weight: 600;
@@ -209,10 +212,10 @@
 /* ✅ 재료 2~3열 '고정 폭' 그리드로: 모든 셀 동일 너비 */
 .recipe-detail-ingredients-grid {
     display: grid;
-    grid-template-columns: repeat(2, minmax(200px, 1fr)); /* 핵심 */
+    grid-template-columns: repeat(2, minmax(200px, 1fr));
     gap: 12px;
 }
-/* 화면이 좁아지면 2열 */
+
 @media (max-width: 1100px) {
     .recipe-detail-ingredients-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -231,6 +234,7 @@
     background: #fafafa;
     box-sizing: border-box;
 }
+
 /* 빈 상태 */
 .recipe-detail-empty {
     color: #888;
@@ -249,28 +253,26 @@
     }
 }
 
-
 /* ✅ 재료명: 한 줄, 말줄임표로 정리 */
 .recipe-detail-ingredient-name {
     flex: 1 1 auto;
-    min-width: 90px;             /* ← 최소 텍스트 폭 보장 */
-    max-width: calc(100% - 80px); /* 버튼/패딩 제외한 최대폭 */
+    min-width: 90px;
+    max-width: calc(100% - 80px);
     font-size: 0.95rem;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
     margin-right: 8px;
     color: #333;
-    display: flex;              /* 이름과 분량을 나란히 배치 */
-    justify-content: space-between; /* 좌우로 공간 분리 */
+    display: flex;
+    justify-content: space-between;
     align-items: center;
-    gap: 5px;                  /* ✅ 이름과 분량 사이 간격 */
-
+    gap: 5px;
 }
 
 /* ✅ 삭제 버튼: 고정 너비/높이 */
 .recipe-detail-remove-btn {
-    flex: 0 0 68px;              /* 72 → 68 */
+    flex: 0 0 68px;
     height: 28px;
     line-height: 26px;
     padding: 0;
@@ -288,7 +290,7 @@
     border-color: #888;
 }
 
-/* ✅ '재료 전체 삭제' 버튼 위치 유지 */
+/* '재료 전체 삭제' 버튼 */
 .recipe-detail-remove-all-wrapper {
     text-align: right;
     margin-top: 10px;
@@ -356,11 +358,19 @@
 }
 
 .recipe-detail-stats {
-    display: flex; align-items: center; gap: 8px; margin: 8px 0 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 8px 0 16px;
 }
 .like-btn {
-    border: none; background: #eee; padding: 6px 10px; border-radius: 999px;
-    cursor: pointer; font-size: 16px; transition: transform .05s ease;
+    border: none;
+    background: #eee;
+    padding: 6px 10px;
+    border-radius: 999px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: transform .05s ease;
 }
 .like-btn:hover { transform: translateY(-1px); }
 .like-btn.liked { background: #ffe3e6; color: #e0245e; }
@@ -397,7 +407,7 @@
     padding:10px 14px;
     border:none;
     border-radius:10px;
-    background:#ef3b3b;       /* 메인 컬러 */
+    background:#ef3b3b;
     color:#fff;
     font-weight:700;
     cursor:pointer;
@@ -412,36 +422,36 @@
 .detail-head{
     display: grid;
     grid-template-columns: 1fr auto;
-    align-items: start;   /* 버튼을 상단 라인에 맞춤 */
+    align-items: start;
     column-gap: 12px;
     row-gap: 8px;
 }
 
-/* 제목은 여러 줄 허용 (그대로 내려가게) */
+/* 제목은 여러 줄 허용 */
 .recipe-detail-title{
     margin: 0;
     line-height: 1.28;
     word-break: keep-all;
-    overflow-wrap: anywhere; /* 너무 긴 단어도 줄바꿈 */
+    overflow-wrap: anywhere;
 }
 
 /* 버튼 묶음: 줄바꿈 없이 오른쪽 상단 고정 */
 .detail-head-actions{
     display: flex;
     gap: 8px;
-    white-space: nowrap;  /* 버튼 텍스트 줄바꿈 방지 */
-    justify-self: end;    /* 그리드의 오른쪽 정렬 */
-    align-self: start;    /* 그리드 셀의 상단 정렬 */
+    white-space: nowrap;
+    justify-self: end;
+    align-self: start;
 }
 
-/* 모바일에서는 버튼을 제목 아래로 내려 배치(선택) */
+/* 모바일에서는 버튼을 제목 아래로 */
 @media (max-width: 640px){
     .detail-head{
         grid-template-columns: 1fr;
     }
     .detail-head-actions{
-        justify-self: start;  /* 아래 줄에서 왼쪽 정렬 */
-        white-space: normal;  /* 매우 좁으면 버튼 줄바꿈 허용 */
+        justify-self: start;
+        white-space: normal;
         flex-wrap: wrap;
         row-gap: 6px;
     }
@@ -470,3 +480,183 @@
     }
 }
 
+.recipe-detail-grid-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.recipe-detail-remove-all-btn {
+    padding: 4px 10px;
+    font-size: 0.85rem;
+    border-radius: 999px;
+    border: 1px solid #ddd;
+    background: #fff;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+/* 단일 ConfirmModal 과 공유되는 스타일 (필요 시 유지) */
+.confirm-modal-list {
+    max-height: 260px;
+    overflow-y: auto;
+    margin: 8px 0 14px;
+}
+
+.confirm-modal-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+}
+
+.confirm-modal-name {
+    flex: 1;
+    font-size: 0.9rem;
+}
+
+.confirm-modal-input.amount { width: 80px; }
+.confirm-modal-input.unit   { width: 70px; }
+
+/* ==== 전체 삭제 모달 전용 스타일 (2열, 두 줄 카드) ==== */
+
+.recipe-detail-all-delete-modal {
+    width: 440px;
+    max-height: 80vh;
+    overflow-y: auto;
+    padding: 22px 24px;
+}
+
+.recipe-detail-all-delete-title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    text-align: center;
+    margin-bottom: 4px;
+}
+
+.recipe-detail-all-delete-sub {
+    font-size: 0.86rem;
+    color: #4b5563;
+    text-align: center;
+    line-height: 1.5;
+    margin-bottom: 14px;
+}
+
+/* ✅ 재료 카드 2열 그리드 */
+.all-delete-list {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px 12px;
+    max-height: 320px;
+    overflow-y: auto;
+    margin-bottom: 16px;
+}
+
+@media (max-width: 520px) {
+    .recipe-detail-all-delete-modal {
+        width: 100%;
+        max-width: 420px;
+    }
+    .all-delete-list {
+        grid-template-columns: 1fr; /* 모바일에서는 1열 */
+    }
+}
+
+/* 재료 한 카드 (두 줄) */
+.all-delete-item {
+    padding: 8px 10px 10px;
+    border-radius: 12px;
+    border: 1px solid #e5e7eb;
+    background: #f9fafb;
+    box-sizing: border-box;
+}
+
+/* 1줄: 이름 */
+.all-delete-name {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #111827;
+    margin-bottom: 6px;
+    text-align: left;
+}
+
+/* 2줄: 수량 + 단위 */
+.all-delete-controls {
+    display: grid;
+    grid-template-columns: 1.2fr 1fr;  /* 숫자 : 단위 */
+    gap: 6px;
+}
+
+.all-delete-amount-input,
+.all-delete-unit-select {
+    width: 100%;
+    padding: 4px 8px;
+    font-size: 0.86rem;
+    border-radius: 8px;
+    border: 1px solid #d1d5db;
+    background-color: #fff;
+    box-sizing: border-box;
+}
+
+.all-delete-amount-input {
+    text-align: right;
+}
+
+.all-delete-amount-input:focus,
+.all-delete-unit-select:focus {
+    outline: none;
+    border-color: #ef3b3b;
+    box-shadow: 0 0 0 1px rgba(239, 59, 59, 0.15);
+}
+
+/* 버튼 영역 오른쪽 정렬 */
+.all-delete-buttons {
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.all-delete-buttons button {
+    min-width: 70px;
+}
+
+
+.all-delete-buttons {
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.all-delete-buttons button {
+    min-width: 72px;
+    padding: 8px 14px;
+    border-radius: 999px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    transition: transform .06s ease, box-shadow .12s ease, opacity .12s ease;
+}
+
+/* 취소(왼쪽) → 연회색 */
+.all-delete-buttons button:first-child {
+    background: #e5e7eb;
+    color: #374151;
+}
+.all-delete-buttons button:first-child:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 3px 8px rgba(0,0,0,.08);
+}
+
+/* 삭제(오른쪽) → 연한 빨강 (단일 모달이랑 비슷하게) */
+.all-delete-buttons button:last-child {
+    background: #fb5b5b;
+    color: #fff;
+}
+.all-delete-buttons button:last-child:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 10px rgba(248,113,113,.45);
+}
+
+.all-delete-buttons {
+    margin-top: 18px;
+}

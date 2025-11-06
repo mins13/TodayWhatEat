@@ -5,13 +5,13 @@ import RecipeSidebar from "../../components/Recipe/RecipeSidebar";
 import ConfirmModal from "../../components/Recipe/ConfirmModal";
 import "./RecipeDetailPage.css";
 import {
-        addView,
-        fetchLikeStatus,
-        toggleLike,
-        fetchRecipeDetail,
-        fetchRecipeRecommendations,
-    } from "../../api/recipeEngageApi";
- import { authHttp as http } from "../../api/http"; // 냉장고 API에 사용
+    addView,
+    fetchLikeStatus,
+    toggleLike,
+    fetchRecipeDetail,
+    fetchRecipeRecommendations,
+} from "../../api/recipeEngageApi";
+import { authHttp as http } from "../../api/http"; // 냉장고 API에 사용
 import { createMyRecipe } from "../../api/myRecipeApi";
 
 const IMG_PLACEHOLDER =
@@ -31,8 +31,113 @@ const keyRec = (id) => `rcp:rec:${id}`;
 
 // 안전 파서
 const safeJson = (s) => {
-    try { return JSON.parse(s); } catch { return null; }
+    try {
+        return JSON.parse(s);
+    } catch {
+        return null;
+    }
 };
+
+/**
+ * ✅ 전체 삭제 전용 모달
+ * 단일 재료 ConfirmModal 과 통일된 느낌 + 2열 카드
+ */
+function AllDeleteModal({ initialItems, onConfirm, onCancel }) {
+    const [items, setItems] = useState(initialItems || []);
+
+    useEffect(() => {
+        setItems(initialItems || []);
+    }, [initialItems]);
+
+    // 🔢 정수만 (0 이상) 허용
+    const changeAmount = (idx, v) => {
+        let n = parseInt(v, 10);
+        if (!Number.isFinite(n) || n < 0) n = 0;
+
+        setItems((prev) =>
+            prev.map((it, i) => (i === idx ? { ...it, amount: n } : it))
+        );
+    };
+
+    const changeUnit = (idx, v) => {
+        setItems((prev) =>
+            prev.map((it, i) => (i === idx ? { ...it, unit: v } : it))
+        );
+    };
+
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        onConfirm(items);
+    };
+
+    return (
+        <div className="recipe-detail-modal-overlay">
+            <form
+                className="recipe-detail-modal recipe-detail-all-delete-modal"
+                onSubmit={handleSubmit}
+            >
+                <h3 className="recipe-detail-all-delete-title">모든 재료 사용 처리</h3>
+                <p className="recipe-detail-all-delete-sub">
+                    각 재료에서 사용할 수량과 단위를 입력해 주세요.
+                    <br />
+                    (0으로 두면 해당 재료는 차감되지 않아요)
+                </p>
+
+                {/* ✅ 재료 카드 2열 그리드 */}
+                <div className="all-delete-list">
+                    {items.map((item, idx) => (
+                        <div
+                            key={`${item.name}-${idx}`}
+                            className="all-delete-item"
+                        >
+                            {/* 1줄: 재료 이름 */}
+                            <div className="all-delete-name">{item.name}</div>
+
+                            {/* 2줄: 수량 + 단위 */}
+                            <div className="all-delete-controls">
+                                <input
+                                    type="number"
+                                    min={0}
+                                    step={1}
+                                    value={item.amount}
+                                    onChange={(e) =>
+                                        changeAmount(idx, e.target.value)
+                                    }
+                                    className="all-delete-amount-input"
+                                />
+                                <select
+                                    value={item.unit}
+                                    onChange={(e) =>
+                                        changeUnit(idx, e.target.value)
+                                    }
+                                    className="all-delete-unit-select"
+                                >
+                                    <option value="개">개</option>
+                                    <option value="g">g</option>
+                                    <option value="ml">ml</option>
+                                    <option value="컵">컵</option>
+                                </select>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+
+                <div className="confirm-modal-actions all-delete-buttons">
+                    <button
+                        type="button"
+                        className="btn-cancel"
+                        onClick={onCancel}
+                    >취소
+                    </button>
+                    <button type="submit" className="btn-confirm">
+                        삭제
+                    </button>
+
+                </div>
+            </form>
+        </div>
+    );
+}
 
 export default function RecipeDetailPage() {
     const { recipeId } = useParams();
@@ -40,11 +145,21 @@ export default function RecipeDetailPage() {
 
     const [recipe, setRecipe] = useState(null);
     const [ingredients, setIngredients] = useState([]);
-    const [seasonings, setSeasonings] = useState([]);
+    const [seasonings, setSeasonings] = useState([]); // 아직 사용 X, 기존 코드 유지
     const [showAll, setShowAll] = useState(false);
+
+    // 단일 재료 삭제용 모달
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [isAllDelete, setIsAllDelete] = useState(false);
     const [targetIndex, setTargetIndex] = useState(null);
+    const [pendingDefault, setPendingDefault] = useState({
+        amount: 1,
+        unit: "개",
+    });
+
+    // ✅ 전체 삭제용 모달
+    const [isAllModalOpen, setIsAllModalOpen] = useState(false);
+    const [allPending, setAllPending] = useState([]);
+
     const [imgSrc, setImgSrc] = useState(IMG_PLACEHOLDER);
     const [recommended, setRecommended] = useState([]);
     const [liked, setLiked] = useState(false);
@@ -80,44 +195,45 @@ export default function RecipeDetailPage() {
     }, [recipeId]);
 
     // ---------- 2) 백그라운드 재검증 ----------
-        useEffect(() => {
-              if (!recipeId) return;
-               (async () => {
-                    try {
-                          const [detail, recs] = await Promise.all([
-                                fetchRecipeDetail(recipeId),
-                                fetchRecipeRecommendations(recipeId, 3),
-                              ]);
-                              if (detail) {
-                               setRecipe(detail);
-                                setViews(Number(detail?.viewCount ?? 0));
-                                setLikes(Number(detail?.likesCount ?? 0));
-                                const url = detail?.image || detail?.imageUrl || detail?.thumbnail || null;
-                                setImgSrc(url || IMG_PLACEHOLDER);
-                                setIngredients(
-                                      (detail.ingredients || []).map((i) => ({
-                                            name: i?.name ?? "",
-                                            amount: i?.amount ?? "",
-                                      }))
-                                );
-                                setSeasonings([]);
-                                sessionStorage.setItem(
-                                      keyDetail(recipeId),
-                                      JSON.stringify({ ts: Date.now(), data: detail })
-                                    );
-                              }
-                              if (Array.isArray(recs)) {
-                                setRecommended(recs);
-                                sessionStorage.setItem(
-                                      keyRec(recipeId),
-                                      JSON.stringify({ ts: Date.now(), data: recs })
-                                    );
-                              }
-                        } catch (e) {
-                          console.error(e);
-                        }
-                  })();
-            }, [recipeId]);
+    useEffect(() => {
+        if (!recipeId) return;
+        (async () => {
+            try {
+                const [detail, recs] = await Promise.all([
+                    fetchRecipeDetail(recipeId),
+                    fetchRecipeRecommendations(recipeId, 3),
+                ]);
+                if (detail) {
+                    setRecipe(detail);
+                    setViews(Number(detail?.viewCount ?? 0));
+                    setLikes(Number(detail?.likesCount ?? 0));
+                    const url =
+                        detail?.image || detail?.imageUrl || detail?.thumbnail || null;
+                    setImgSrc(url || IMG_PLACEHOLDER);
+                    setIngredients(
+                        (detail.ingredients || []).map((i) => ({
+                            name: i?.name ?? "",
+                            amount: i?.amount ?? "",
+                        }))
+                    );
+                    setSeasonings([]);
+                    sessionStorage.setItem(
+                        keyDetail(recipeId),
+                        JSON.stringify({ ts: Date.now(), data: detail })
+                    );
+                }
+                if (Array.isArray(recs)) {
+                    setRecommended(recs);
+                    sessionStorage.setItem(
+                        keyRec(recipeId),
+                        JSON.stringify({ ts: Date.now(), data: recs })
+                    );
+                }
+            } catch (e) {
+                console.error(e);
+            }
+        })();
+    }, [recipeId]);
 
     // ---------- 3) 비-크리티컬 요청 지연(초기 페인트 후) ----------
     useEffect(() => {
@@ -130,14 +246,16 @@ export default function RecipeDetailPage() {
                     setLiked(!!liked);
                     setLikes(Number(likes ?? 0));
                 })
-                .catch(() => { /* 비로그인 등 무시 */ });
+                .catch(() => {
+                    /* 비로그인 등 무시 */
+                });
 
             // 조회수 증가 (6시간 TTL 로컬키로 중복 방지)
             const key = `vw:${recipeId}`;
             const last = Number(localStorage.getItem(key) || 0);
             const now = Date.now();
-            const TTL = 1000 * 60 * 60 * 6;
-            if (!last || now - last > TTL) {
+            const ttl = 1000 * 60 * 60 * 6;
+            if (!last || now - last > ttl) {
                 addView(recipeId)
                     .then(({ views }) => setViews(Number(views ?? 0)))
                     .catch(() => {});
@@ -145,11 +263,12 @@ export default function RecipeDetailPage() {
             }
         };
 
-        // idle에 실행 시도 → 없으면 타임아웃으로 폴백
         if ("requestIdleCallback" in window) {
             // @ts-ignore
             const id = window.requestIdleCallback(run, { timeout: 1200 });
-            return () => window.cancelIdleCallback && window.cancelIdleCallback(id);
+            return () => {
+                if (window.cancelIdleCallback) window.cancelIdleCallback(id);
+            };
         } else {
             const t = setTimeout(run, 0);
             return () => clearTimeout(t);
@@ -177,7 +296,10 @@ export default function RecipeDetailPage() {
         const s = String(str).trim();
         const m = s.match(/^([\d.]+)\s*(.*)$/);
         if (!m) return { value: 1, unit: "" };
-        return { value: parseFloat(m[1]) || 1, unit: (m[2] || "").trim() };
+        return {
+            value: parseFloat(m[1]) || 1,
+            unit: (m[2] || "").trim(),
+        };
     }
 
     // 냉장고 재고 조회/차감은 모달 확인 때만 호출 → 초기 로드에 영향 없음
@@ -189,8 +311,7 @@ export default function RecipeDetailPage() {
     };
 
     async function hasIngredientInfo(name) {
-          // 인터셉터가 Authorization/쿠키 자동 처리
-              const { data: list } = await http.get("/fridge/list");
+        const { data: list } = await http.get("/fridge/list");
         const target = normName(name);
         const same = (Array.isArray(list) ? list : []).filter(
             (it) => normName(it?.ingredientName) === target
@@ -203,43 +324,33 @@ export default function RecipeDetailPage() {
     }
 
     async function consumeItems(items) {
-          const { data } = await http.patch("/fridge/consume", { items });
-          return data;
-        }
+        const { data } = await http.patch("/fridge/consume", { items });
+        return data;
+    }
 
-    const [pendingDefault, setPendingDefault] = useState({ amount: 1, unit: "개" });
-
+    // 단일 재료 삭제 확정
     const handleConfirmDelete = async (amountFromModal, unitFromModal) => {
         try {
-            if (isAllDelete) {
-                const items = ingredients.map((ing) => {
-                    const { value, unit } = splitAmount(ing.amount);
-                    return {
-                        name: ing.name,
-                        amount: Number(value) || 1,
-                        unit: unit || "",
-                    };
-                });
-                await consumeItems(items);
-                localStorage.setItem("fridgeDirty", String(Date.now()));
-                window.dispatchEvent(new Event("fridge-dirty"));
-                alert("모든 재료 차감 완료!");
-            } else if (targetIndex != null) {
-                const ing = ingredients[targetIndex];
-                const { exists, total } = await hasIngredientInfo(ing.name);
-                if (!exists) {
-                    alert(`냉장고에 '${ing.name}'이(가) 없습니다.`);
-                    return;
-                }
-                const reqAmount = Number(amountFromModal) || 1;
-                if (reqAmount > total) {
-                    alert(`'${ing.name}'의 수량이 부족합니다. (보유: ${total})`);
-                    return;
-                }
-                const reqUnit = unitFromModal || "";
-                await consumeItems([{ name: ing.name, amount: reqAmount, unit: reqUnit }]);
-                alert("재고 차감 완료!");
+            if (targetIndex == null) return;
+
+            const ing = ingredients[targetIndex];
+            const { exists, total } = await hasIngredientInfo(ing.name);
+            if (!exists) {
+                alert("냉장고에 없는 재료가 있습니다.");
+                return;
             }
+            const reqAmount = Number(amountFromModal) || 1;
+            if (reqAmount > total) {
+                alert(`'${ing.name}'의 수량이 부족합니다. (보유: ${total})`);
+                return;
+            }
+            const reqUnit = unitFromModal || "";
+            await consumeItems([
+                { name: ing.name, amount: reqAmount, unit: reqUnit },
+            ]);
+            alert("재고 차감 완료!");
+            localStorage.setItem("fridgeDirty", String(Date.now()));
+            window.dispatchEvent(new Event("fridge-dirty"));
         } catch (e) {
             console.error(e);
             alert("재고 차감 실패");
@@ -250,8 +361,14 @@ export default function RecipeDetailPage() {
 
     const steps = useMemo(() => {
         if (!recipe) return [];
-        let raw = recipe.instructions ?? recipe.steps ?? recipe.description ?? recipe.content ?? "";
-        if (Array.isArray(raw)) return raw.map((s) => String(s).trim()).filter(Boolean);
+        let raw =
+            recipe.instructions ??
+            recipe.steps ??
+            recipe.description ??
+            recipe.content ??
+            "";
+        if (Array.isArray(raw))
+            return raw.map((s) => String(s).trim()).filter(Boolean);
         if (typeof raw === "string") {
             const withoutTags = raw
                 .replace(/<br\s*\/?>/gi, "\n")
@@ -263,14 +380,18 @@ export default function RecipeDetailPage() {
                 .flatMap((line) => line.split(/\s*\d+[.)-]\s+/))
                 .map((s) => s.trim())
                 .filter(Boolean);
-            return splitted.length ? splitted : withoutTags.trim() ? [withoutTags.trim()] : [];
+            return splitted.length
+                ? splitted
+                : withoutTags.trim()
+                    ? [withoutTags.trim()]
+                    : [];
         }
         return [];
     }, [recipe]);
 
+    // 단일 재료 삭제 버튼 클릭
     const handleRemoveClick = (index) => {
         setTargetIndex(index);
-        setIsAllDelete(false);
         const ing = ingredients[index];
         const { value, unit } = splitAmount(ing?.amount ?? "");
         setPendingDefault({
@@ -280,11 +401,86 @@ export default function RecipeDetailPage() {
         setIsModalOpen(true);
     };
 
+    // ✅ 전체 삭제 버튼 클릭
+    const handleOpenAllDelete = () => {
+        if (!ingredients.length) {
+            alert("차감할 재료가 없어요.");
+            return;
+        }
+
+        // 원래 단위에서 4가지 중 하나로 최대한 맞춰주기
+        const normalizeUnit = (rawUnit) => {
+            const u = String(rawUnit || "").toLowerCase();
+            if (u.includes("ml")) return "ml";
+            if (u.includes("g") || u.includes("그램")) return "g";
+            if (u.includes("컵") || u.includes("cup")) return "컵";
+            return "개";
+        };
+
+        const prepared = ingredients.map((ing) => {
+            const { unit } = splitAmount(ing?.amount ?? "");
+            return {
+                name: ing?.name || "",
+                amount: 0, // 🔥 모두 0개로 시작
+                unit: normalizeUnit(unit),
+            };
+        });
+
+        setAllPending(prepared);
+        setIsAllModalOpen(true);
+    };
+
+    // ✅ 전체 삭제 모달에서 확정
+    const handleConfirmAllDelete = async (itemsFromModal) => {
+        try {
+            const payload = [];
+            const list = itemsFromModal || [];
+
+            for (const it of list) {
+                const n = parseInt(it.amount, 10);
+                if (!Number.isFinite(n) || n <= 0) continue; // 0/빈칸은 스킵
+
+                // 🔍 냉장고 재고 체크 (없으면 친절한 메시지)
+                const { exists, total } = await hasIngredientInfo(it.name);
+                if (!exists) {
+                    alert("냉장고에 없는 재료가 있습니다.");
+                    return;
+                }
+                if (n > total) {
+                    alert(`'${it.name}'의 수량이 부족합니다. (보유: ${total})`);
+                    return;
+                }
+
+                payload.push({
+                    name: it.name,
+                    amount: n,
+                    unit: it.unit || "",
+                });
+            }
+
+            if (!payload.length) {
+                alert("차감할 재료 수량을 입력해 주세요.");
+                return;
+            }
+
+            await consumeItems(payload);
+            localStorage.setItem("fridgeDirty", String(Date.now()));
+            window.dispatchEvent(new Event("fridge-dirty"));
+            alert("선택한 재료들을 사용 처리했어요!");
+        } catch (e) {
+            console.error(e);
+            alert("재고 차감 실패");
+        } finally {
+            setIsAllModalOpen(false);
+        }
+    };
+
     // 공개 레시피 → 나만의 레시피로 복사
     const addToMyRecipes = async () => {
         if (!recipe) return;
         try {
-            const imageUrl = recipe.imageUrl || recipe.image || recipe.thumbnail || imgSrc || "";
+            const imageUrl =
+                recipe.imageUrl || recipe.image || recipe.thumbnail || imgSrc || "";
             const ingPayload = (ingredients || []).map((ing, i) => {
                 const { value, unit } = splitAmount(ing?.amount || "");
                 return {
@@ -310,7 +506,9 @@ export default function RecipeDetailPage() {
                 alert("나만의 레시피에 추가되었습니다. 수정 화면으로 이동합니다.");
                 navigate(`/recipe/my/${newId}/edit`);
             } else {
-                alert("추가는 완료했지만 새 레시피 ID를 받지 못했어요. 내 레시피 목록으로 이동합니다.");
+                alert(
+                    "추가는 완료했지만 새 레시피 ID를 받지 못했어요. 내 레시피 목록으로 이동합니다."
+                );
                 navigate("/recipe/my");
             }
         } catch (e) {
@@ -320,7 +518,6 @@ export default function RecipeDetailPage() {
     };
 
     if (!recipe) {
-        // 첫 진입에 캐시가 없을 때만 잠깐 보임
         return <div>로딩 중...</div>;
     }
 
@@ -335,7 +532,10 @@ export default function RecipeDetailPage() {
                     <div className="detail-head">
                         <h2 className="recipe-detail-title">{recipe.title}</h2>
                         <div className="detail-head-actions">
-                            <button className="btn-outline" onClick={() => navigate("/recipe")}>
+                            <button
+                                className="btn-outline"
+                                onClick={() => navigate("/recipe")}
+                            >
                                 목록으로
                             </button>
                             <button className="btn-addmine" onClick={addToMyRecipes}>
@@ -367,19 +567,45 @@ export default function RecipeDetailPage() {
                             loading="lazy"
                             decoding="async"
                         />
+
                         <div className="recipe-detail-table-box">
-                            <div className="recipe-detail-grid-title">재료</div>
+                            {/* '재료' 줄 + 전체 삭제 버튼 */}
+                            <div className="recipe-detail-grid-header">
+                                <div className="recipe-detail-grid-title">재료</div>
+                                {ingredients.length > 0 && (
+                                    <button
+                                        type="button"
+                                        className="recipe-detail-remove-all-btn"
+                                        onClick={handleOpenAllDelete}
+                                    >
+                                        전체 삭제
+                                    </button>
+                                )}
+                            </div>
+
                             <div className="recipe-detail-ingredients-grid">
                                 {ingredients.length === 0 ? (
-                                    <div className="recipe-detail-empty">등록된 재료가 없어요</div>
+                                    <div className="recipe-detail-empty">
+                                        등록된 재료가 없어요
+                                    </div>
                                 ) : (
                                     ingredients.map((ing, i) => (
-                                        <div className="recipe-detail-ingredient-card" key={`${ing.name}-${i}`}>
-                      <span className="recipe-detail-ingredient-name">
-                        <span className="ingredient-name">{ing.name}</span>
-                        <span className="ingredient-amount">{ing.amount}</span>
-                      </span>
-                                            <button className="recipe-detail-remove-btn" onClick={() => handleRemoveClick(i)}>
+                                        <div
+                                            className="recipe-detail-ingredient-card"
+                                            key={`${ing.name}-${i}`}
+                                        >
+                                            <span className="recipe-detail-ingredient-name">
+                                                <span className="ingredient-name">
+                                                    {ing.name}
+                                                </span>
+                                                <span className="ingredient-amount">
+                                                    {ing.amount}
+                                                </span>
+                                            </span>
+                                            <button
+                                                className="recipe-detail-remove-btn"
+                                                onClick={() => handleRemoveClick(i)}
+                                            >
                                                 재료 삭제
                                             </button>
                                         </div>
@@ -392,21 +618,32 @@ export default function RecipeDetailPage() {
                     <div className="recipe-detail-description">
                         <h4>레시피</h4>
                         <ol>
-                            {steps.map((step, i) => (!showAll && i >= 3 ? null : <li key={i}>{step}</li>))}
+                            {steps.map((step, i) =>
+                                !showAll && i >= 3 ? null : <li key={i}>{step}</li>
+                            )}
                         </ol>
 
                         {steps.length > 3 && (
-                            <button className="recipe-detail-show-more-btn" onClick={() => setShowAll(!showAll)}>
+                            <button
+                                className="recipe-detail-show-more-btn"
+                                onClick={() => setShowAll(!showAll)}
+                            >
                                 {showAll ? "접기▲" : "더보기▼"}
                             </button>
                         )}
                     </div>
 
                     <div className="recipe-detail-footer">
-                        <h4 className="recipe-detail-recommend-title">다른 추천 레시피</h4>
+                        <h4 className="recipe-detail-recommend-title">
+                            다른 추천 레시피
+                        </h4>
                         <div className="recommend-list">
                             {recommended.map((r) => (
-                                <div key={r.id} className="recommend-card" onClick={() => navigate(`/recipe/${r.id}`)}>
+                                <div
+                                    key={r.id}
+                                    className="recommend-card"
+                                    onClick={() => navigate(`/recipe/${r.id}`)}
+                                >
                                     <img
                                         src={r.imageUrl || r.image || r.thumbnail || IMG_PLACEHOLDER}
                                         alt={r.title}
@@ -420,24 +657,41 @@ export default function RecipeDetailPage() {
                                     <p>{r.title}</p>
                                 </div>
                             ))}
-                            {!recommended.length && <div className="recipe-detail-empty">추천 레시피가 아직 없어요</div>}
+                            {!recommended.length && (
+                                <div className="recipe-detail-empty">
+                                    추천 레시피가 아직 없어요
+                                </div>
+                            )}
                         </div>
-                        <button className="recipe-detail-back-btn" onClick={() => navigate("/recipe")}>
+                        <button
+                            className="recipe-detail-back-btn"
+                            onClick={() => navigate("/recipe")}
+                        >
                             목록으로
                         </button>
                     </div>
                 </div>
             </div>
 
-            {isModalOpen && (
+            {/* 단일 재료 삭제 모달 */}
+            {isModalOpen && targetIndex != null && (
                 <ConfirmModal
-                    message={
-                        isAllDelete ? "모든 재료를 차감하시겠습니까?" : `'${ingredients[targetIndex]?.name}'을(를) 얼마만큼 사용할까요?`
-                    }
+                    message={`'${
+                        ingredients[targetIndex]?.name
+                    }'을(를) 얼마만큼 사용할까요?`}
                     defaultAmount={pendingDefault.amount}
                     defaultUnit={pendingDefault.unit}
                     onConfirm={handleConfirmDelete}
                     onCancel={() => setIsModalOpen(false)}
+                />
+            )}
+
+            {/* 전체 삭제 모달 */}
+            {isAllModalOpen && (
+                <AllDeleteModal
+                    initialItems={allPending}
+                    onConfirm={handleConfirmAllDelete}
+                    onCancel={() => setIsAllModalOpen(false)}
                 />
             )}
         </div>
