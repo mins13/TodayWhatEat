@@ -174,19 +174,28 @@ function IngredientListModal({ date, items, version, onClose, onChange }) {
 
     const handleRestore = async (idx) => {
         const row = localItems[idx];
-        let amount = Number(usingAmount[row.id]);
-        if (!Number.isFinite(amount) || amount <= 0) amount = 1;
         if (!row?.id) return;
 
-        // 처음 수량을 넘지 않도록 상한 계산
         const init = Number(row.initialCount ?? 0);
         const now = Number(row.count ?? 0);
         const maxAdd = Math.max(0, init - now);
-        const safeAmount = Math.min(amount, maxAdd);
 
-        if (safeAmount <= 0) {
+        // 💡 1) 이미 처음 수량이면 더 복구할 게 없음
+        if (maxAdd <= 0) {
             alert("복구할 수 있는 수량이 없습니다. (이미 처음 수량입니다)");
             return;
+        }
+
+        let safeAmount;
+
+        if (now === 0) {
+            // 💡 2) 전체 사용된 상태라면 → 남은 사용량 전체 복구
+            safeAmount = maxAdd; // = init - 0 = init
+        } else {
+            // 💡 3) 일부만 사용된 상태라면 → 입력값 만큼만 복구(최대 maxAdd)
+            let amount = Number(usingAmount[row.id]);
+            if (!Number.isFinite(amount) || amount <= 0) amount = 1;
+            safeAmount = Math.min(amount, maxAdd);
         }
 
         try {
@@ -206,16 +215,19 @@ function IngredientListModal({ date, items, version, onClose, onChange }) {
                         : it
                 )
             );
+
             if (onChange)
                 await onChange("restore", { id: row.id, newQuantity: newQ });
 
-            setUsingAmount((prev) => ({ ...prev, [row.id]: "" }));
+            // 입력창은 다시 1로
+            setUsingAmount((prev) => ({ ...prev, [row.id]: 1 }));
         } catch (e) {
             alert(e?.response?.data?.message || e?.message || "사용취소 실패");
         } finally {
             setLoadingId(null);
         }
     };
+sssss
 
     // ===== 렌더 =====
     const todayStr = formatDate(date);
