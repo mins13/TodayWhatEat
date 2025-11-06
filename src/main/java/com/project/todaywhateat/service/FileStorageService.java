@@ -1,5 +1,6 @@
 package com.project.todaywhateat.service;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -18,8 +19,25 @@ public class FileStorageService {
     // 업로드 루트 디렉터리 (프로젝트 기준 /uploads)
     private final Path root = Paths.get("uploads").toAbsolutePath().normalize();
 
+    // application.yml 에 server.servlet.context-path=/api 이런 식으로 들어가는 값
+    @Value("${server.servlet.context-path:}")
+    private String contextPath;
+
     /**
-     * 파일을 저장하고 브라우저에서 접근 가능한 URL(/files/연/월/파일명)을 반환
+     * context-path 를 "/api" 형식으로 정리해서 돌려주는 헬퍼
+     * - 설정이 없으면 "" 리턴
+     */
+    private String ctxPrefix() {
+        if (contextPath == null || contextPath.isBlank() || "/".equals(contextPath)) {
+            return "";
+        }
+        return contextPath.startsWith("/") ? contextPath : "/" + contextPath;
+    }
+
+    /**
+     * 파일을 저장하고 브라우저에서 접근 가능한 URL을 반환
+     * - context-path 가 "/api" 라면 "/api/files/연/월/파일명"
+     * - context-path 가 없으면 "/files/연/월/파일명"
      */
     public String savePublic(MultipartFile mf) throws IOException {
         if (!Files.exists(root)) Files.createDirectories(root);
@@ -46,10 +64,12 @@ public class FileStorageService {
             Files.copy(in, dest, StandardCopyOption.REPLACE_EXISTING);
         }
 
-        // 브라우저가 접근할 공개 URL(항상 슬래시로 시작, 백슬래시 금지)
-        String publicUrl = "/files/" + d.getYear() + "/"
+        // 🔥 컨텍스트패스까지 포함한 공개 URL
+        String prefix = ctxPrefix(); // 예: "", "/api"
+        String publicUrl = prefix + "/files/" + d.getYear() + "/"
                 + String.format("%02d", d.getMonthValue()) + "/"
                 + filename;
+
         return publicUrl;
     }
 
@@ -60,7 +80,9 @@ public class FileStorageService {
      *
      * 예시 입력:
      *   "/files/2025/11/abcd.png"
+     *   "/api/files/2025/11/abcd.png"
      *   "http://localhost:8080/files/2025/11/abcd.png"
+     *   "https://todaywhateat-production.up.railway.app/api/files/2025/11/abcd.png"
      */
     public void deleteQuietly(String url) {
         if (url == null || url.isBlank()) return;
@@ -74,16 +96,22 @@ public class FileStorageService {
                 pathPart = pathPart.substring(0, q);
             }
 
-            // 절대 URL이면 /files/ 부터 잘라내기
+            // 절대 URL이면 /files/ 기준으로 잘라내기
             if (pathPart.startsWith("http://") || pathPart.startsWith("https://")) {
                 int idx = pathPart.indexOf("/files/");
                 if (idx >= 0) {
-                    pathPart = pathPart.substring(idx); // "/files/..."
+                    pathPart = pathPart.substring(idx); // "/files/..." 또는 "/api/files/..."
                 }
             }
 
             // 백슬래시 → 슬래시
             pathPart = pathPart.replace("\\", "/");
+
+            // 🔥 context-path 제거: "/api/files/..." → "/files/..."
+            String prefix = ctxPrefix(); // 예: "/api" 또는 ""
+            if (!prefix.isEmpty() && pathPart.startsWith(prefix + "/")) {
+                pathPart = pathPart.substring(prefix.length()); // "/files/..."
+            }
 
             // 앞의 / 제거
             if (pathPart.startsWith("/")) {
